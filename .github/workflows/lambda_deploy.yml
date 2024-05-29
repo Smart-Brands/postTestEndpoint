@@ -1,0 +1,163 @@
+name: Deploy Lambda Function with Cleanup
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set Environment Variables
+        run: |
+          # Set environment variables
+          echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> $GITHUB_ENV
+          echo "ICON_URL=https://example.com/icon.png" >> $GITHUB_ENV
+          echo "USERNAME=GitHub Actions" >> $GITHUB_ENV
+          echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> $GITHUB_ENV
+          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
+          REPO_NAME="${{ github.repository }}"
+          VALID_FUNCTION_NAME=$(echo "$REPO_NAME" | sed 's/Smart-Brands//' | tr -cd '[:alnum:]-_' | tr '/' '-')
+          echo "LAMBDA_FUNCTION_NAME=$VALID_FUNCTION_NAME" >> $GITHUB_ENV
+
+      - name: Send Slack Notification - Build Started 🚀
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "username": "GitHub Actions",
+            "icon_url": "'"$ICON_URL"'",
+            "attachments": [
+              {
+                "color": "#FFFF00",
+                "title": "Build Started 🚀",
+                "text": "Building <${{ github.event.repository.html_url }}|${{ github.repository }}>. See progress in the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions workflow>.",
+                "fallback": "Build Started 🚀"
+              }
+            ]
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Verify package installation
+        run: |
+          echo "Verifying package installation..."
+          npm list --depth=0
+          if [ -d "node_modules" ]; then
+            echo "node_modules directory exists and dependencies are installed correctly."
+          else
+            echo "Error: node_modules directory does not exist"
+            exit 1
+          fi
+
+      - name: Check if build script exists
+        id: check_build
+        run: |
+          if grep -q '"build"' package.json; then
+            echo "build=true" >> $GITHUB_ENV
+          else
+            echo "build=false" >> $GITHUB_ENV
+          fi
+
+      - name: Run build step (if applicable)
+        if: env.build == 'true'
+        run: npm run build
+
+      - name: Send Slack Notification - Build In Progress 🔄
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "username": "GitHub Actions",
+            "icon_url": "'"$ICON_URL"'",
+            "attachments": [
+              {
+                "color": "#439FE0",
+                "title": "Build In Progress 🔄",
+                "text": "Building <${{ github.event.repository.html_url }}|${{ github.repository }}>. See progress in the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions workflow>.",
+                "fallback": "Build In Progress 🔄"
+              }
+            ]
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create output directory for zip
+        run: mkdir -p $(dirname ./${{ env.LAMBDA_FUNCTION_NAME }}.zip)
+
+      - name: Remove existing zip file
+        run: rm -f ./${{ env.LAMBDA_FUNCTION_NAME }}.zip   
+
+      - name: Package Lambda function
+        run: zip -qq -r ./${{ env.LAMBDA_FUNCTION_NAME }}.zip ./ -x "*.git*" -x "package-lock.json"
+
+      - name: Include node_modules in package
+        run: |
+          echo "Including node_modules in package..."
+          zip -qq -r ./${{ env.LAMBDA_FUNCTION_NAME }}.zip ./node_modules
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+    #  - name: Upload to S3
+    #    run: |
+    #      aws s3 cp ./${{ env.LAMBDA_FUNCTION_NAME }}.zip s3://${{ env.AWS_S3_BUCKET }}/${{ env.LAMBDA_FUNCTION_NAME }}.zip
+
+    #  - name: Deploy to AWS Lambda from S3
+    #    run: |
+    #      aws lambda update-function-code --function-name ${{ env.LAMBDA_FUNCTION_NAME }} --s3-bucket ${{ env.AWS_S3_BUCKET }} --s3-key ${{ env.LAMBDA_FUNCTION_NAME }}.zip --publish
+
+      - name: Clean up S3 bucket
+        run: |
+          aws s3 rm s3://${{ env.AWS_S3_BUCKET }}/${{ env.LAMBDA_FUNCTION_NAME }}.zip
+
+      - name: Send Slack Notification - Deployment Complete 🎉
+        if: success()
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "username": "GitHub Actions",
+            "icon_url": "'"$ICON_URL"'",
+            "attachments": [
+              {
+                "color": "good",
+                "title": "Deployment Success 🎉",
+                "text": "Lambda function for <${{ github.event.repository.html_url }}|${{ github.repository }}> successfully deployed and started! See details in the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions workflow>.",
+                "fallback": "Deployment Success 🎉"
+              }
+            ]
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Send Slack Notification - Build Failed 🚨
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "username": "GitHub Actions",
+            "icon_url": "'"$ICON_URL"'",
+            "attachments": [
+              {
+                "color": "danger",
+                "title": "Build Failed 🚨",
+                "text": "Build failed for <${{ github.event.repository.html_url }}|${{ github.repository }}>. See details in the <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions workflow>.",
+                "fallback": "Build Failed 🚨"
+              }
+            ]
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
