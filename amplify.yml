@@ -1,0 +1,21 @@
+version: 1.0
+env:
+  variables:
+      AWS_ACCESS_KEY_ID: AKIAUAMQQUGZE2O2JGSH
+      AWS_SECRET_ACCESS_KEY: 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
+backend:
+  phases:
+    preBuild:
+      commands:
+        - npm install
+    build:
+      commands:
+        - npm run deploy
+  cache:
+    paths:
+      - node_modules/**/*
+frontend:
+  artifacts:
+    files:
+        - '**/*'
+    baseDirectory: .serverless
