@@ -270,9 +270,9 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
          LEFT JOIN
             integrations i ON otn.integration_id = i.id
          LEFT JOIN
-            pixels p ON otn.pixel_id = p.id AND otn.partner_id = p.partner_id
+            pixels p ON otn.pixel_id = p.id AND otn.pixel_id IS NOT NULL AND otn.partner_id = p.partner_id
          LEFT JOIN
-            partner_lists l ON otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
+            partner_lists l ON otn.partner_list_id = l.id AND otn.partner_list_id IS NOT NULL AND otn.partner_id = l.partner_id
          LEFT JOIN
             partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
          WHERE
