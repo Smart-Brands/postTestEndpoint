@@ -247,35 +247,35 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     } else {
       emlField = 'c.email_address';
     }
-    console.log("PARAMS: ", partner.id, lmt, offst, triggerName)
-    let result = await main.sql.query(
-      `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, otn.*
-       from outgoing_notifications otn
-       inner join contacts c on otn.contact_id = c.id
-       left join integrations i on otn.integration_id = i.id
-       left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-       left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-       where otn.partner_id = ?
-	     ${dateFiltersSql}
-       order by otn.date_sent desc
-       limit ? offset ?`,
-      [partner.id, lmt, offst],
-    );
-
+    console.log("PARAMS: ID - ", partner.id, " LIMIT - ", lmt, " OFFSET - ", offst, " TRIGGER NAME - ", triggerName)
     // let result = await main.sql.query(
-    //   `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+    //   `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, otn.*
     //    from outgoing_notifications otn
     //    inner join contacts c on otn.contact_id = c.id
     //    left join integrations i on otn.integration_id = i.id
     //    left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
     //    left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-    //    left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-    //    where otn.partner_id = ? AND t.name = ?
-    //    ${dateFiltersSql}
+    //    where otn.partner_id = ?
+	  //    ${dateFiltersSql}
     //    order by otn.date_sent desc
     //    limit ? offset ?`,
-    //   [partner.id, triggerName, lmt, offst],
+    //   [partner.id, lmt, offst],
     // );
+
+    let result = await main.sql.query(
+      `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+       from outgoing_notifications otn
+       inner join contacts c on otn.contact_id = c.id
+       left join integrations i on otn.integration_id = i.id
+       left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+       left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+       left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+       where otn.partner_id = ? AND t.name = ?
+       ${dateFiltersSql}
+       order by otn.date_sent desc
+       limit ? offset ?`,
+      [partner.id, triggerName, lmt, offst],
+    );
 
     console.log("RESULT ARRAY: ", result)
     await main.sql.end();
