@@ -247,22 +247,44 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     } else {
       emlField = 'c.email_address';
     }
-    console.log("PARAMS: ID - ", partner.id, " LIMIT - ", lmt, " OFFSET - ", offst, " TRIGGER NAME - ", triggerName)
+    console.log("PARAMS: ID = ", partner.id, " | LIMIT = ", lmt, " | OFFSET = ", offst, " | TRIGGER NAME = ", triggerName)
     let result;
 
     if(triggerName) {
       result = await main.sql.query(
-        `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-         from outgoing_notifications otn
-         inner join contacts c on otn.contact_id = c.id
-         left join integrations i on otn.integration_id = i.id
-         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-         left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-         left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-         where otn.partner_id = ? AND t.name = ?
-         ${dateFiltersSql}
-         order by otn.date_sent desc
-         limit ? offset ?`,
+        `SELECT
+            ${emlField} AS email,
+            COALESCE(p.uuid, 'Network') AS uuid,
+            COALESCE(p.pixel_name, 'Network') AS pixel_name,
+            COALESCE(p.description, 'Network') AS pixel_description,
+            COALESCE(l.name, 'Pixel') AS list_name,
+            t.name AS trigger_name,
+            i.name AS integration_name,
+            otn.status_code,
+            otn.response_text,
+            otn.date_sent
+         FROM
+            outgoing_notifications otn
+         INNER JOIN
+            contacts c ON otn.contact_id = c.id
+         LEFT JOIN
+            integrations i ON otn.integration_id = i.id
+         LEFT JOIN
+            pixels p ON otn.pixel_id = p.id AND otn.pixel_id IS NOT NULL AND otn.partner_id = p.partner_id
+         LEFT JOIN
+            partner_lists l ON otn.partner_list_id = l.id AND otn.partner_list_id IS NOT NULL AND otn.partner_id = l.partner_id
+         LEFT JOIN
+            partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+         WHERE
+            otn.partner_id = ?
+            AND t.name = ?
+            ${dateFiltersSql}
+         ORDER BY
+            otn.date_sent DESC
+         LIMIT
+            ?
+         OFFSET
+            ?`,
         [partner.id, triggerName, lmt, offst],
       );
     } else {
