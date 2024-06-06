@@ -277,6 +277,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       [partner.id, triggerName, lmt, offst],
     );
 
+    console.log("RESULT: ", result)
     await main.sql.end();
 
     const orgLngth = result.length;
@@ -295,7 +296,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
     return main.responseWrapper(result);
   } catch (e) {
-    console.log(e);
+    console.log("ERROR: ", e);
     return main.responseWrapper(e, e.statusCode || 500);
   }
 };
