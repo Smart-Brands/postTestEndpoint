@@ -247,7 +247,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     } else {
       emlField = 'c.email_address';
     }
-
+    console.log("PARAMS: ", partner.id, lmt, offst, triggerName)
     let result = await main.sql.query(
       `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, otn.*
        from outgoing_notifications otn
