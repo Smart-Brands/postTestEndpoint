@@ -252,7 +252,8 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
     if(triggerName) {
       result = await main.sql.query(
-        `SELECT
+        `EXPLAIN
+        SELECT
             ${emlField} AS email,
             COALESCE(p.uuid, 'Network') AS uuid,
             COALESCE(p.pixel_name, 'Network') AS pixel_name,
