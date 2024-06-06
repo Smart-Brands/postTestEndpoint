@@ -117,13 +117,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-    #  - name: Upload to S3
-    #    run: |
-    #      aws s3 cp ./${{ env.LAMBDA_FUNCTION_NAME }}.zip s3://${{ env.AWS_S3_BUCKET }}/${{ env.LAMBDA_FUNCTION_NAME }}.zip
+      - name: Upload to S3
+        run: |
+         aws s3 cp ./${{ env.LAMBDA_FUNCTION_NAME }}.zip s3://${{ env.AWS_S3_BUCKET }}/${{ env.LAMBDA_FUNCTION_NAME }}.zip
 
-    #  - name: Deploy to AWS Lambda from S3
-    #    run: |
-    #      aws lambda update-function-code --function-name ${{ env.LAMBDA_FUNCTION_NAME }} --s3-bucket ${{ env.AWS_S3_BUCKET }} --s3-key ${{ env.LAMBDA_FUNCTION_NAME }}.zip --publish
+      - name:  Deploy to AWS Lambda from S3
+        run: |
+         aws lambda update-function-code --function-name ${{ env.LAMBDA_FUNCTION_NAME }} --s3-bucket ${{ env.AWS_S3_BUCKET }} --s3-key ${{ env.LAMBDA_FUNCTION_NAME }}.zip --publish
 
       - name: Clean up S3 bucket
         run: |
