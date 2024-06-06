@@ -282,10 +282,10 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
          ORDER BY
             otn.date_sent DESC
          LIMIT
-            ?
+            50
          OFFSET
             ?`,
-        [partner.id, triggerName, lmt, offst],
+        [partner.id, triggerName, offst],
       );
     } else {
       result = await main.sql.query(
