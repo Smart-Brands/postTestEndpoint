@@ -8,6 +8,17 @@ const Readable = require('stream').Readable;
 const sftp = require('./sftp');
 const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand } = require('@aws-sdk/client-redshift-data');
+const { Client } = require('pg');
+
+const redshiftConfig = {
+  host: process.env.REDSHIFT_HOST,
+  user: process.env.REDSHIFT_USER,
+  password: process.env.REDSHIFT_DB_PASSWORD,
+  database: process.env.REDSHIFT_DB_NAME,
+};
 
 const checkPartnerNetworkIn = partner => {
   if (!partner.network_in) {
@@ -211,10 +222,21 @@ const setPixelOwnerFilters = filterType => {
   }
 };
 
-module.exports.getOutgoingNotificationsForPartner = async event => {
-  console.log(
-    'Get Outgoing Notifications For Partner Event: ' + JSON.stringify(event),
-  );
+module.exports.getOutgoingNotificationsForPartner = async (event) => {
+  console.log('Get Outgoing Notifications For Partner Event: ' + JSON.stringify(event));
+
+  const client = new Client(redshiftConfig);
+
+  async function connectToRedshift() {
+    try {
+      await client.connect();
+      console.log('Connected to Redshift');
+    } catch (err) {
+      console.error('Connection error', err.stack);
+      throw err;
+    }
+  }
+
   const {
     take,
     offset,
@@ -224,6 +246,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     filterPixelOwner,
     triggerName = null,
   } = event.queryStringParameters;
+
   const lmt = parseInt(take);
   const offst = parseInt(offset);
   const dtObj = {
@@ -233,61 +256,70 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     field: 'otn.date_sent',
   };
   const dateFilterPart = setDateFilters(dtObj);
-  const dateFiltersSql = !!dateFilterPart ? dateFilterPart : '';
-  //const pixelOwnerFiltersSql = setPixelOwnerFilters(filterPixelOwner);
+  const dateFiltersSql = dateFilterPart || '';
 
-  try {
+  async function fetchItems(emlField, partnerId, triggerName, dateFiltersSql, lmt, offst) {
+    try {
+      const query = `
+        SELECT ${emlField}, i.name AS integration_name, COALESCE(p.uuid, 'Network') AS uuid,
+               COALESCE(p.pixel_name, 'Network') AS pixel_name,
+               COALESCE(p.description, 'Network') AS pixel_description,
+               COALESCE(l.name, 'Pixel') AS list_name, t.name AS trigger_name, otn.*
+        FROM outgoing_notifications otn
+        INNER JOIN contacts c ON otn.contact_id = c.id
+        LEFT JOIN integrations i ON otn.integration_id = i.id
+        LEFT JOIN pixels p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
+        LEFT JOIN partner_lists l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
+        LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+        WHERE otn.partner_id = $1
+          AND ($2 IS NULL OR t.name = $2)
+          ${dateFiltersSql}
+        ORDER BY otn.date_sent DESC
+        LIMIT $3 OFFSET $4;
+      `;
+      const res = await client.query(query, [partnerId, triggerName, lmt, offst]);
+      return res.rows;
+    } catch (err) {
+      console.error('Error fetching data', err.stack);
+      throw err;
+    }
+  }
+
+  async function main() {
+    await connectToRedshift();
+
     const partner = await main.authenticateUser(event);
-
     checkPartnerNetworkIn(partner);
-    var emlField;
 
-    if (partner.hash_access) {
-      emlField = 'c.email_hash';
-    } else {
-      emlField = 'c.email_address';
-    }
-    console.log("PARAMS: ID = ", partner.id, " | LIMIT = ", lmt, " | OFFSET = ", offst, " | TRIGGER NAME = ", triggerName)
+    const emlField = partner.hash_access ? 'c.email_hash' : 'c.email_address';
+    console.log("PARAMS: ID = ", partner.id, " | LIMIT = ", lmt, " | OFFSET = ", offst, " | TRIGGER NAME = ", triggerName);
+
     let result;
-
-    if(triggerName) {
-      result = await main.sql.query(
-        `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-         from outgoing_notifications otn
-         inner join contacts c on otn.contact_id = c.id
-         left join integrations i on otn.integration_id = i.id
-         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-         left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-         left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-         where otn.partner_id = ?
-         AND t.name = triggerName
-         ${dateFiltersSql}
-         order by otn.date_sent desc
-         limit ? offset ?`,
-        [partner.id, triggerName, lmt, offst],
-      );
+    if (triggerName) {
+      result = await fetchItems(emlField, partner.id, triggerName, dateFiltersSql, lmt, offst);
     } else {
       result = await main.sql.query(
-        `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-         from outgoing_notifications otn
-         inner join contacts c on otn.contact_id = c.id
-         left join integrations i on otn.integration_id = i.id
-         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-         left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-         left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-         where otn.partner_id = ?
+        `SELECT ${emlField}, i.name AS integration_name, COALESCE(p.uuid, 'Network') AS uuid,
+                COALESCE(p.pixel_name, 'Network') AS pixel_name, COALESCE(p.description, 'Network') AS pixel_description,
+                COALESCE(l.name, 'Pixel') AS list_name, t.name AS trigger_name, otn.*
+         FROM outgoing_notifications otn
+         INNER JOIN contacts c ON otn.contact_id = c.id
+         LEFT JOIN integrations i ON otn.integration_id = i.id
+         LEFT JOIN pixels p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
+         LEFT JOIN partner_lists l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
+         LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+         WHERE otn.partner_id = ?
          ${dateFiltersSql}
-         order by otn.date_sent desc
-         limit ? offset ?`,
-        [partner.id, lmt, offst],
+         ORDER BY otn.date_sent DESC
+         LIMIT ? OFFSET ?`,
+        [partner.id, lmt, offst]
       );
     }
 
-    console.log("RESULT ARRAY: ", result)
+    console.log("RESULT ARRAY: ", result);
     await main.sql.end();
 
     const orgLngth = result.length;
-
     if (filterPixelOwner.toLowerCase() === 'my pixels') {
       result = result.filter(row => row.uuid !== 'Network');
       if (result[0]) {
@@ -300,11 +332,17 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       }
     }
 
-    console.log("BEFORE RETURN: ", result)
+    console.log("BEFORE RETURN: ", result);
     return main.responseWrapper(result);
+  }
+
+  try {
+    return await main();
   } catch (e) {
     console.log("ERROR: ", e);
     return main.responseWrapper(e, e.statusCode || 500);
+  } finally {
+    await client.end();
   }
 };
 
