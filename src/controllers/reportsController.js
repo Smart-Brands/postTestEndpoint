@@ -256,60 +256,60 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     let result;
 
     if(triggerName) {
-      result = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-         from outgoing_notifications otn
-         inner join contacts c on otn.contact_id = c.id
-         left join integrations i on otn.integration_id = i.id
-         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-         left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-         left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-         where otn.partner_id = ${partner.id}
-         AND t.name = ${triggerName}
-         ${dateFiltersSql}
-         order by otn.date_sent desc
-         limit ${lmt} offset ${offst};`
-      );
+      // result = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+      //    from outgoing_notifications otn
+      //    inner join contacts c on otn.contact_id = c.id
+      //    left join integrations i on otn.integration_id = i.id
+      //    left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+      //    left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+      //    left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+      //    where otn.partner_id = ${partner.id}
+      //    AND t.name = ${triggerName}
+      //    ${dateFiltersSql}
+      //    order by otn.date_sent desc
+      //    limit ${lmt} offset ${offst};`
+      // );
 
-        // Create a RedshiftData client
-        const redshiftClient = new RedshiftDataClient({
-          region: process.env.MY_AWS_REGION,
-        });
+      //   // Create a RedshiftData client
+      //   const redshiftClient = new RedshiftDataClient({
+      //     region: process.env.MY_AWS_REGION,
+      //   });
 
-        // Execute the UNLOAD command
-        const executeStatementResponse = await redshiftClient.send(
-          new ExecuteStatementCommand({
-            ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
-            Database: process.env.REDSHIFT_DATABASE,
-            DbUser: process.env.REDSHIFT_USER,
-            Sql: result,
-          })
-        );
+      //   // Execute the UNLOAD command
+      //   const executeStatementResponse = await redshiftClient.send(
+      //     new ExecuteStatementCommand({
+      //       ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
+      //       Database: process.env.REDSHIFT_DATABASE,
+      //       DbUser: process.env.REDSHIFT_USER,
+      //       Sql: result,
+      //     })
+      //   );
 
-        // Get the statement ID
-        const statementId = executeStatementResponse.Id;
+      //   // Get the statement ID
+      //   const statementId = executeStatementResponse.Id;
 
-        // Poll for statement completion
-        let statementStatus = 'SUBMITTED';
-        while (statementStatus !== 'FINISHED') {
-          const describeStatementResponse = await redshiftClient.send(
-            new DescribeStatementCommand({
-              Id: statementId,
-            })
-          );
+      //   // Poll for statement completion
+      //   let statementStatus = 'SUBMITTED';
+      //   while (statementStatus !== 'FINISHED') {
+      //     const describeStatementResponse = await redshiftClient.send(
+      //       new DescribeStatementCommand({
+      //         Id: statementId,
+      //       })
+      //     );
 
-          statementStatus = describeStatementResponse.Status;
-          console.log(`Current statement status: ${statementStatus}`);
+      //     statementStatus = describeStatementResponse.Status;
+      //     console.log(`Current statement status: ${statementStatus}`);
 
-          if (statementStatus === 'FAILED') {
-            throw new Error(`Statement execution failed: ${describeStatementResponse.Error}`);
-          }
+      //     if (statementStatus === 'FAILED') {
+      //       throw new Error(`Statement execution failed: ${describeStatementResponse.Error}`);
+      //     }
 
-          if (statementStatus !== 'FINISHED') {
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for 5 seconds before checking again
-          }
-        }
+      //     if (statementStatus !== 'FINISHED') {
+      //       await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for 5 seconds before checking again
+      //     }
+      //   }
 
-        return main.responseWrapper(result);
+      //   return main.responseWrapper(result);
     } else {
       result = await main.sql.query(
         `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
