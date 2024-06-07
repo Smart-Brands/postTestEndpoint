@@ -11,6 +11,7 @@
     "debug": "SLS_DEBUG=* sls offline start"
   },
   "dependencies": {
+    "@aws-sdk/client-redshift-data": "^3.592.0",
     "@hubspot/api-client": "^3.4.1",
     "@mailchimp/mailchimp_marketing": "^3.0.41",
     "@sendgrid/client": "^7.4.3",
