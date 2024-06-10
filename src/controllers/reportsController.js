@@ -314,7 +314,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
       (async () => {
         console.log('*** CALL EXECUTESTATEMENT ***')
-        result = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+        sqlQuery = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
           from outgoing_notifications otn
           inner join contacts c on otn.contact_id = c.id
           left join integrations i on otn.integration_id = i.id
@@ -326,7 +326,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           ${dateFiltersSql}
           order by otn.date_sent desc
           limit ${lmt} offset ${offst};`);
-          const resultsArray = await executeStatement(result);
+          const resultsArray = await executeStatement(sqlQuery);
           console.log('*** EXECUTE STATEMENT: ', resultsArray)
           return main.responseWrapper(resultsArray);
       })();
