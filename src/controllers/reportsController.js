@@ -10,6 +10,21 @@ const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand } = require('@aws-sdk/client-redshift-data');
 
+// Initialize the RedshiftDataClient with your region
+const redshiftClient = new RedshiftDataClient({
+  region: process.env.AWS_REGION
+});
+
+// Function to execute the SQL statement
+const executeStatement = async (sql) => {
+  const command = new ExecuteStatementCommand({
+      ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
+      Database: process.env.REDSHIFT_DB,
+      DbUser: process.env.REDSHIFT_USER,
+      DbPassword: process.env.REDSHIFT_DB_PASSWORD,
+      Sql: sql
+  });
+
 const checkPartnerNetworkIn = partner => {
   if (!partner.network_in) {
     throw new main.HttpError(`You don't have access to this resource`, 403);
@@ -265,21 +280,40 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
         order by otn.date_sent desc
         limit ${lmt} offset ${offst};`);
 
-      // Create a RedshiftData client
-      const redshiftClient = new RedshiftDataClient({
-        region: process.env.MY_AWS_REGION,
-      });
+      try {
+         // Send the execute statement command
+         const result = await redshiftClient.send(command);
+         console.log("EXECUTE STATEMENT RESP: ", result);
 
-      // Execute the UNLOAD command
-      const executeStatementResponse = await redshiftClient.send(
-        new ExecuteStatementCommand({
-          ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
-          Database: process.env.REDSHIFT_DATABASE,
-          DbUser: process.env.REDSHIFT_USER,
-          DbPassword: process.env.REDSHIFT_DB_PASSWORD,
-          Sql: result,
-        })
-      );
+         // Wait until the query is complete by polling the statement status
+         const statementId = result.Id;
+         let queryStatus = "STARTED";
+
+         while (queryStatus === "STARTED" || queryStatus === "SUBMITTED") {
+             await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before polling again
+
+             const describeCommand = new DescribeStatementCommand({ Id: statementId });
+             const describeResult = await redshiftClient.send(describeCommand);
+             queryStatus = describeResult.Status;
+
+             console.log(`Query status: ${queryStatus}`);
+         }
+
+         if (queryStatus === "FINISHED") {
+             console.log("Query completed successfully.");
+         } else {
+             console.error("Query failed or was aborted.");
+         }
+
+        } catch (err) {
+            console.error("Error executing statement: ", err);
+            throw err;
+        }
+
+        (async () => {
+            const sql = "YOUR_SQL_QUERY"; // Replace with your SQL query
+            await executeStatement(sql);
+        })();
 
       console.log('EXECUTE STATMENT RESP: ', executeStatementResponse)
       return main.responseWrapper(executeStatementResponse);
