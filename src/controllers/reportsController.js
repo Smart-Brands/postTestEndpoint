@@ -323,6 +323,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           order by otn.date_sent desc
           limit ${lmt} offset ${offst};`); // Replace with your SQL query
           const resultsArray = await executeStatement(result);
+          console.log('*** EXECUTE STATEMENT: ', resultsArray)
           return main.responseWrapper(resultsArray);
       })();
     } else {
