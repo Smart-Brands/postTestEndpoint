@@ -216,6 +216,15 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
   console.log(
     'Get Outgoing Notifications For Partner Event: ' + JSON.stringify(event),
   );
+
+  const redshiftClient = new RedshiftDataClient({
+    region: process.env.MY_AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.ACCESS_KEY_ID,
+      secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    }
+  });
+
   const {
     take,
     offset,
@@ -253,10 +262,6 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
     if(triggerName) {
       // Create a RedshiftData client
-      const redshiftClient = new RedshiftDataClient({
-        region: process.env.MY_AWS_REGION,
-      });
-
       // // Execute the UNLOAD command
       // const executeStatementResponse = await redshiftClient.send(
       //   new ExecuteStatementCommand({
@@ -270,44 +275,42 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
       const executeStatement = async (sql) => {
         const command = new ExecuteStatementCommand({
-            ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
-            Database: process.env.REDSHIFT_DB,
-            DbUser: process.env.REDSHIFT_USER,
-            DbPassword: process.env.REDSHIFT_DB_PASSWORD,
-            Sql: sql
-        });
+          ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
+          Database: process.env.REDSHIFT_DB,
+          DbUser: process.env.REDSHIFT_USER,
+          DbPassword: process.env.REDSHIFT_DB_PASSWORD,
+          Sql: sql
+      });
+      try {
+        // Send the execute statement command
+        const result = await redshiftClient.send(command);
+        console.log("EXECUTE STATEMENT RESP: ", result);
 
-        try {
-            // Send the execute statement command
-            const result = await redshiftClient.send(command);
-            console.log("EXECUTE STATEMENT RESP: ", result);
+        // Wait until the query is complete by polling the statement status
+        const statementId = result.Id;
+        let queryStatus = "STARTED";
 
-            // Wait until the query is complete by polling the statement status
-            const statementId = result.Id;
-            let queryStatus = "STARTED";
+        while (queryStatus === "STARTED" || queryStatus === "SUBMITTED") {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before polling again
 
-            while (queryStatus === "STARTED" || queryStatus === "SUBMITTED") {
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before polling again
+            const describeCommand = new DescribeStatementCommand({ Id: statementId });
+            const describeResult = await redshiftClient.send(describeCommand);
+            queryStatus = describeResult.Status;
 
-                const describeCommand = new DescribeStatementCommand({ Id: statementId });
-                const describeResult = await redshiftClient.send(describeCommand);
-                queryStatus = describeResult.Status;
-
-                console.log(`Query status: ${queryStatus}`);
-            }
-
-            if (queryStatus === "FINISHED") {
-                console.log("Query completed successfully.");
-                return main.responseWrapper(executeStatementResponse);
-            } else {
-                console.error("Query failed or was aborted.");
-            }
-
-        } catch (err) {
-            console.error("Error executing statement: ", err);
-            throw err;
+            console.log(`Query status: ${queryStatus}`);
         }
-      };
+
+        if (queryStatus === "FINISHED") {
+            console.log("Query completed successfully.");
+        } else {
+            console.error("Query failed or was aborted.");
+        }
+
+      } catch (err) {
+        console.error("Error executing statement: ", err);
+        throw err;
+      }
+    }
 
       (async () => {
         result = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
@@ -321,7 +324,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           AND t.name = '${triggerName}'
           ${dateFiltersSql}
           order by otn.date_sent desc
-          limit ${lmt} offset ${offst};`); // Replace with your SQL query
+          limit ${lmt} offset ${offst};`);
           const resultsArray = await executeStatement(result);
           console.log('*** EXECUTE STATEMENT: ', resultsArray)
           return main.responseWrapper(resultsArray);
