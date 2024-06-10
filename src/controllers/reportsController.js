@@ -257,17 +257,6 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     let result;
 
     if(triggerName) {
-      // Create a RedshiftData client
-      // // Execute the UNLOAD command
-      // const executeStatementResponse = await redshiftClient.send(
-      //   new ExecuteStatementCommand({
-      //     ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
-      //     Database: process.env.REDSHIFT_DATABASE,
-      //     DbUser: process.env.REDSHIFT_USER,
-      //     DbPassword: process.env.REDSHIFT_DB_PASSWORD,
-      //     Sql: result,
-      //   })
-      // );
       console.log('*** IN TRIGGERNAME CONDITION ***')
       const executeStatement = async (sql) => {
         const command = new ExecuteStatementCommand({
@@ -286,6 +275,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
         const statementId = result.Id;
         let queryStatus = "STARTED";
 
+        console.log("*** START WHILE LOOP ***")
         while (queryStatus === "STARTED" || queryStatus === "SUBMITTED") {
             await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before polling again
 
@@ -322,11 +312,16 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           ${dateFiltersSql}
           order by otn.date_sent desc
           limit ${lmt} offset ${offst};`);
-          result = await executeStatement(sqlQuery);
-          console.log('*** EXECUTE STATEMENT: ', result)
-          return main.responseWrapper(result);
-      })();
-    } else {
+
+          try {
+            result = await executeStatement(sqlQuery);
+            console.log('*** EXECUTE STATEMENT: ', result)
+            return main.responseWrapper(result);
+          } catch (err) {
+            console.error('EXECUTION FAILED: ', err)
+          }
+        })();
+      } else {
       result = await main.sql.query(
         `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
          from outgoing_notifications otn
