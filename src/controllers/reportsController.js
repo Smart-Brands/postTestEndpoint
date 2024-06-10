@@ -219,10 +219,6 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
   const redshiftClient = new RedshiftDataClient({
     region: process.env.MY_AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.ACCESS_KEY_ID,
-      secretAccessKey: process.env.SECRET_ACCESS_KEY,
-    }
   });
 
   const {
