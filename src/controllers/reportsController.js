@@ -10,21 +10,6 @@ const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand } = require('@aws-sdk/client-redshift-data');
 
-// Initialize the RedshiftDataClient with your region
-const redshiftClient = new RedshiftDataClient({
-  region: process.env.AWS_REGION
-});
-
-// Function to execute the SQL statement
-const executeStatement = async (sql) => {
-  const command = new ExecuteStatementCommand({
-      ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
-      Database: process.env.REDSHIFT_DB,
-      DbUser: process.env.REDSHIFT_USER,
-      DbPassword: process.env.REDSHIFT_DB_PASSWORD,
-      Sql: sql
-  });
-
 const checkPartnerNetworkIn = partner => {
   if (!partner.network_in) {
     throw new main.HttpError(`You don't have access to this resource`, 403);
@@ -267,57 +252,79 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     let result;
 
     if(triggerName) {
-      result = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-        from outgoing_notifications otn
-        inner join contacts c on otn.contact_id = c.id
-        left join integrations i on otn.integration_id = i.id
-        left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-        left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-        left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-        where otn.partner_id = '${partner.id}'
-        AND t.name = '${triggerName}'
-        ${dateFiltersSql}
-        order by otn.date_sent desc
-        limit ${lmt} offset ${offst};`);
+      // Create a RedshiftData client
+      const redshiftClient = new RedshiftDataClient({
+        region: process.env.MY_AWS_REGION,
+      });
 
-      try {
-         // Send the execute statement command
-         const result = await redshiftClient.send(command);
-         console.log("EXECUTE STATEMENT RESP: ", result);
+      // // Execute the UNLOAD command
+      // const executeStatementResponse = await redshiftClient.send(
+      //   new ExecuteStatementCommand({
+      //     ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
+      //     Database: process.env.REDSHIFT_DATABASE,
+      //     DbUser: process.env.REDSHIFT_USER,
+      //     DbPassword: process.env.REDSHIFT_DB_PASSWORD,
+      //     Sql: result,
+      //   })
+      // );
 
-         // Wait until the query is complete by polling the statement status
-         const statementId = result.Id;
-         let queryStatus = "STARTED";
+      const executeStatement = async (sql) => {
+        const command = new ExecuteStatementCommand({
+            ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
+            Database: process.env.REDSHIFT_DB,
+            DbUser: process.env.REDSHIFT_USER,
+            DbPassword: process.env.REDSHIFT_DB_PASSWORD,
+            Sql: sql
+        });
 
-         while (queryStatus === "STARTED" || queryStatus === "SUBMITTED") {
-             await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before polling again
+        try {
+            // Send the execute statement command
+            const result = await redshiftClient.send(command);
+            console.log("EXECUTE STATEMENT RESP: ", result);
 
-             const describeCommand = new DescribeStatementCommand({ Id: statementId });
-             const describeResult = await redshiftClient.send(describeCommand);
-             queryStatus = describeResult.Status;
+            // Wait until the query is complete by polling the statement status
+            const statementId = result.Id;
+            let queryStatus = "STARTED";
 
-             console.log(`Query status: ${queryStatus}`);
-         }
+            while (queryStatus === "STARTED" || queryStatus === "SUBMITTED") {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before polling again
 
-         if (queryStatus === "FINISHED") {
-             console.log("Query completed successfully.");
-         } else {
-             console.error("Query failed or was aborted.");
-         }
+                const describeCommand = new DescribeStatementCommand({ Id: statementId });
+                const describeResult = await redshiftClient.send(describeCommand);
+                queryStatus = describeResult.Status;
+
+                console.log(`Query status: ${queryStatus}`);
+            }
+
+            if (queryStatus === "FINISHED") {
+                console.log("Query completed successfully.");
+                return main.responseWrapper(executeStatementResponse);
+            } else {
+                console.error("Query failed or was aborted.");
+            }
 
         } catch (err) {
             console.error("Error executing statement: ", err);
             throw err;
         }
+      };
 
-        (async () => {
-            const sql = "YOUR_SQL_QUERY"; // Replace with your SQL query
-            await executeStatement(sql);
-        })();
-
-      console.log('EXECUTE STATMENT RESP: ', executeStatementResponse)
-      return main.responseWrapper(executeStatementResponse);
-
+      (async () => {
+        result = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+          from outgoing_notifications otn
+          inner join contacts c on otn.contact_id = c.id
+          left join integrations i on otn.integration_id = i.id
+          left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+          left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+          left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+          where otn.partner_id = '${partner.id}'
+          AND t.name = '${triggerName}'
+          ${dateFiltersSql}
+          order by otn.date_sent desc
+          limit ${lmt} offset ${offst};`); // Replace with your SQL query
+          const resultsArray = await executeStatement(result);
+          return main.responseWrapper(resultsArray);
+      })();
     } else {
       result = await main.sql.query(
         `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
