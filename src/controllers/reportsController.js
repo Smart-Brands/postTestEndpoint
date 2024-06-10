@@ -314,6 +314,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           limit ${lmt} offset ${offst};`);
 
           try {
+            console.log("SQL QUERY: ", sqlQuery, " TYPE OF: ", typeof(sqlQuery))
             result = await executeStatement(sqlQuery);
             console.log('*** EXECUTE STATEMENT: ', result)
             return main.responseWrapper(result);
