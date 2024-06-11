@@ -8,7 +8,7 @@ const Readable = require('stream').Readable;
 const sftp = require('./sftp');
 const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand } = require('@aws-sdk/client-redshift-data');
+const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand, GetStatementResultCommand } = require('@aws-sdk/client-redshift-data');
 
 const checkPartnerNetworkIn = partner => {
   if (!partner.network_in) {
@@ -296,9 +296,11 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
         }
 
         if (queryStatus === "FINISHED") {
-          console.log("Query completed successfully.");
-          console.log("RESULT: ", rsResult)
-          return rsResult;
+          const getResultCommand = new GetStatementResultCommand({ Id: statementId });
+          const queryResult = await redshiftClient.send(getResultCommand);
+          console.log("QUERY RESULT: ", queryResult);
+
+          return queryResult;
         } else {
           console.error("Query failed or was aborted.");
           throw new Error("Query failed or was aborted.");
