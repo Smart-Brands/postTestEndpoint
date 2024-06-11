@@ -212,6 +212,30 @@ const setPixelOwnerFilters = filterType => {
   }
 };
 
+const formateRedshiftReturn = (result) => {
+  const columns = [
+    'email', 'integration_name', 'uuid', 'pixel_name', 'pixel_description',
+    'list_name', 'trigger_name', 'contact_id', 'integration_id', 'pixel_id',
+    'api_url', 'response_code', 'response_message', 'date_sent', 'date_received',
+    'date_opened', 'partner_id', 'campaign_id', 'template_id', 'account_id',
+    'created_at'
+  ];
+
+  return result.map(row => {
+    const obj = {};
+    row.forEach((item, index) => {
+        if (item.stringValue !== undefined) {
+          obj[columns[index]] = item.stringValue;
+        } else if (item.longValue !== undefined) {
+          obj[columns[index]] = item.longValue;
+        } else if (item.isNull) {
+          obj[columns[index]] = null;
+        }
+      });
+      return obj;
+  });
+}
+
 module.exports.getOutgoingNotificationsForPartner = async event => {
   console.log(
     'Get Outgoing Notifications For Partner Event: ' + JSON.stringify(event),
@@ -334,7 +358,8 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     console.log("SQL QUERY: ", sqlQuery);
 
       try {
-        result = await executeStatement(sqlQuery);
+        const resultArr = await executeStatement(sqlQuery)
+        result = formateRedshiftReturn(resultArr);
         console.log('*** EXECUTE STATEMENT: ', result)
       } catch (err) {
         console.error('EXECUTION FAILED: ', err)
