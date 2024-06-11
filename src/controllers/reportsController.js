@@ -329,9 +329,9 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     //       order by otn.date_sent desc
     //       limit ${lmt} offset ${offst};`);
 
-    const sqlQuery = `SELECT pixel_name FROM
+    const sqlQuery = `SELECT * FROM
           "imp"."public"."pixels" p
-          WHERE p.pixel_name = '${triggerName}';`
+          WHERE p.partner_id = '${partner.id}';`
 
     console.log("SQL QUERY: ", sqlQuery);
 
