@@ -297,6 +297,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
         if (queryStatus === "FINISHED") {
           console.log("Query completed successfully.");
+          console.log("RESULT: ", rsResult)
           return rsResult;
         } else {
           console.error("Query failed or was aborted.");
@@ -328,8 +329,11 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     //       order by otn.date_sent desc
     //       limit ${lmt} offset ${offst};`);
 
-    const sqlQuery = `SELECT * FROM "imp"."public"."partner_triggers" p
-              WHERE p.partner_id = '${partner.id}'`
+    const sqlQuery = `SELECT pixel_name FROM
+          "imp"."public"."pixels" p
+          WHERE p.pixel_name = '${triggerName}';`
+
+    console.log("SQL QUERY: ", sqlQuery);
 
       try {
         result = await executeStatement(sqlQuery);
