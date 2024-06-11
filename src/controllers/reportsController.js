@@ -258,7 +258,10 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
     if(triggerName) {
       console.log('*** IN TRIGGERNAME CONDITION ***')
+
       const executeStatement = async (sql) => {
+      console.log('*** IN EXECUTESTATMENT FUNC ***')
+
         const command = new ExecuteStatementCommand({
           ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
           Database: process.env.REDSHIFT_DB,
@@ -266,6 +269,9 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           DbPassword: process.env.REDSHIFT_DB_PASSWORD,
           Sql: sql
       });
+
+      console.log('*** BEFORE THE TRY ***')
+
       try {
         // Send the execute statement command
         const result = await redshiftClient.send(command);
@@ -336,10 +342,11 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
          limit ? offset ?`,
         [partner.id, lmt, offst],
       );
+
+      console.log("RESULT ARRAY: ", result)
+      await main.sql.end();
     }
 
-    console.log("RESULT ARRAY: ", result)
-    await main.sql.end();
 
     const orgLngth = result.length;
 
