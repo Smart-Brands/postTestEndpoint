@@ -296,9 +296,11 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
         }
 
         if (queryStatus === "FINISHED") {
-            console.log("Query completed successfully.");
+          console.log("Query completed successfully.");
+          return rsResult;
         } else {
-            console.error("Query failed or was aborted.");
+          console.error("Query failed or was aborted.");
+          throw new Error("Query failed or was aborted.");
         }
 
       } catch (err) {
@@ -307,9 +309,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       }
     }
 
-      (async () => {
-        console.log('*** CALL EXECUTESTATEMENT ***')
-        const sqlQuery = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+    const sqlQuery = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
         FROM
         "imp"."public"."outgoing_notifications" otn
       INNER JOIN
@@ -328,15 +328,15 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           order by otn.date_sent desc
           limit ${lmt} offset ${offst};`);
 
-          try {
-            result = await executeStatement(sqlQuery);
-            console.log('*** EXECUTE STATEMENT: ', result)
-            return main.responseWrapper(result);
-          } catch (err) {
-            console.error('EXECUTION FAILED: ', err)
-          }
-        })();
-      } else {
+      try {
+        result = await executeStatement(sqlQuery);
+        console.log('*** EXECUTE STATEMENT: ', result)
+      } catch (err) {
+        console.error('EXECUTION FAILED: ', err)
+        return main.responseWrapper(err, 500)
+      }
+
+    } else {
       result = await main.sql.query(
         `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
          from outgoing_notifications otn
@@ -355,8 +355,6 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       console.log("RESULT ARRAY: ", result)
       await main.sql.end();
     }
-
-    setTimeout(() => console.log(">>> TIMEOUT <<<"), 5000)
 
     console.log(" HERE BEFORE REDSHIFT RESOLVED ")
     const orgLngth = result.length;
