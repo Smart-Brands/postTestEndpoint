@@ -300,7 +300,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           const queryResult = await redshiftClient.send(getResultCommand);
           console.log("QUERY RESULT: ", queryResult);
 
-          return queryResult;
+          return queryResult.Records;
         } else {
           console.error("Query failed or was aborted.");
           throw new Error("Query failed or was aborted.");
