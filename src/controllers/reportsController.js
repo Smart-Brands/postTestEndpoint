@@ -263,8 +263,8 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       console.log('*** IN EXECUTESTATMENT FUNC: ', sql)
 
         const command = new ExecuteStatementCommand({
-          ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
-          Database: process.env.REDSHIFT_DB,
+          ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
+          Database: process.env.REDSHIFT_DATABASE,
           DbUser: process.env.REDSHIFT_USER,
           DbPassword: process.env.REDSHIFT_DB_PASSWORD,
           Sql: sql
@@ -310,13 +310,19 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       (async () => {
         console.log('*** CALL EXECUTESTATEMENT ***')
         const sqlQuery = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-          from outgoing_notifications otn
-          inner join contacts c on otn.contact_id = c.id
-          left join integrations i on otn.integration_id = i.id
-          left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-          left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-          left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-          where otn.partner_id = '${partner.id}'
+        FROM
+        "imp"."public"."outgoing_notifications" otn
+      INNER JOIN
+        "imp"."public"."contacts" c ON otn.contact_id = c.id
+      LEFT JOIN
+        "imp"."public"."integrations" i ON otn.integration_id = i.id
+      LEFT JOIN
+        "imp"."public"."pixels" p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
+      LEFT JOIN
+        "imp"."public"."partner_lists" l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
+      LEFT JOIN
+        "imp"."public"."partner_triggers" t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+        WHERE otn.partner_id = '${partner.id}'
           AND t.name = '${triggerName}'
           ${dateFiltersSql}
           order by otn.date_sent desc
