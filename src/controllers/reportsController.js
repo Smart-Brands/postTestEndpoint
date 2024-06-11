@@ -260,7 +260,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       console.log('*** IN TRIGGERNAME CONDITION ***')
 
       const executeStatement = async (sql) => {
-      console.log('*** IN EXECUTESTATMENT FUNC ***')
+      console.log('*** IN EXECUTESTATMENT FUNC: ', sql)
 
         const command = new ExecuteStatementCommand({
           ClusterIdentifier: process.env.REDSHIFT_CLUSTER_ID,
@@ -273,6 +273,9 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       console.log('*** BEFORE THE TRY ***')
 
       try {
+
+      console.log('*** INSIDE TRY: ', command)
+
         // Send the execute statement command
         const result = await redshiftClient.send(command);
         console.log("EXECUTE STATEMENT RESP: ", result);
