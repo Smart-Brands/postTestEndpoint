@@ -277,11 +277,11 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       console.log('*** INSIDE TRY: ', command)
 
         // Send the execute statement command
-        const result = await redshiftClient.send(command);
-        console.log("EXECUTE STATEMENT RESP: ", result);
+        const rsResult = await redshiftClient.send(command);
+        console.log("EXECUTE STATEMENT RESP: ", rsResult);
 
         // Wait until the query is complete by polling the statement status
-        const statementId = result.Id;
+        const statementId = rsResult.Id;
         let queryStatus = "STARTED";
 
         console.log("*** START WHILE LOOP ***")
@@ -356,6 +356,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       await main.sql.end();
     }
 
+    setTimeout(() => console.log("TIMEOUT"), 5000)
 
     const orgLngth = result.length;
 
