@@ -356,8 +356,9 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       await main.sql.end();
     }
 
-    setTimeout(() => console.log("TIMEOUT"), 5000)
+    setTimeout(() => console.log(">>> TIMEOUT <<<"), 5000)
 
+    console.log(" HERE BEFORE REDSHIFT RESOLVED ")
     const orgLngth = result.length;
 
     if (filterPixelOwner.toLowerCase() === 'my pixels') {
