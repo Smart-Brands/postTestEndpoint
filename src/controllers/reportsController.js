@@ -312,7 +312,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       }
     }
 
-    const sqlQuery = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+    const sqlQuery = (`select ${emlField}, i.name as integration_name, p.uuid as uuid, p.pixel_name as pixel_name, p.description as pixel_description, l.name as list_name, t.name as trigger_name, otn.*
         FROM
         "imp"."public"."outgoing_notifications" otn
       INNER JOIN
