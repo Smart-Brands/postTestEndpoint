@@ -328,8 +328,8 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     //       order by otn.date_sent desc
     //       limit ${lmt} offset ${offst};`);
 
-    const sqlQuery = `SELECT * FROM "imp"."public"."outgoing_notifications" otn
-              WHERE otn.partner_id = '${partner.id}'`
+    const sqlQuery = `SELECT * FROM "imp"."public"."partner_triggers" p
+              WHERE p.partner_id = '${partner.id}'`
 
       try {
         result = await executeStatement(sqlQuery);
