@@ -212,13 +212,17 @@ const setPixelOwnerFilters = filterType => {
   }
 };
 
-const formateRedshiftReturn = (result) => {
+const formateRedshiftReturn = (result, emailField) => {
+  let eml_Field;
+  if (emailField === 'c.email_hash') {
+    eml_Field = 'email_hash';
+  } else {
+    eml_Field = 'email_address';
+  }
   const columns = [
-    'email', 'integration_name', 'uuid', 'pixel_name', 'pixel_description',
-    'list_name', 'trigger_name', 'contact_id', 'integration_id', 'pixel_id',
-    'api_url', 'response_code', 'response_message', 'date_sent', 'date_received',
-    'date_opened', 'partner_id', 'campaign_id', 'template_id', 'account_id',
-    'created_at'
+    eml_Field, 'uuid', 'pixel_name', 'pixel_description',
+    'trigger_name', 'list_name', 'integration_name',
+    'status_code', 'response_text', 'date_sent'
   ];
 
   return result.map(row => {
@@ -359,7 +363,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
       try {
         const resultArr = await executeStatement(sqlQuery)
-        result = formateRedshiftReturn(resultArr);
+        result = formateRedshiftReturn(resultArr, emlField);
         console.log('*** EXECUTE STATEMENT: ', result)
       } catch (err) {
         console.error('EXECUTION FAILED: ', err)
