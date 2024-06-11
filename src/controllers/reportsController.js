@@ -312,28 +312,24 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
       }
     }
 
-    // const sqlQuery = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-    //     FROM
-    //     "imp"."public"."outgoing_notifications" otn
-    //   INNER JOIN
-    //     "imp"."public"."contacts" c ON otn.contact_id = c.id
-    //   LEFT JOIN
-    //     "imp"."public"."integrations" i ON otn.integration_id = i.id
-    //   LEFT JOIN
-    //     "imp"."public"."pixels" p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
-    //   LEFT JOIN
-    //     "imp"."public"."partner_lists" l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
-    //   LEFT JOIN
-    //     "imp"."public"."partner_triggers" t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-    //     WHERE otn.partner_id = '${partner.id}'
-    //       AND t.name = '${triggerName}'
-    //       ${dateFiltersSql}
-    //       order by otn.date_sent desc
-    //       limit ${lmt} offset ${offst};`);
-
-    const sqlQuery = `SELECT * FROM
-          "imp"."public"."pixels" p
-          WHERE p.partner_id = '${partner.id}';`
+    const sqlQuery = (`select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+        FROM
+        "imp"."public"."outgoing_notifications" otn
+      INNER JOIN
+        "imp"."public"."contacts" c ON otn.contact_id = c.id
+      LEFT JOIN
+        "imp"."public"."integrations" i ON otn.integration_id = i.id
+      LEFT JOIN
+        "imp"."public"."pixels" p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
+      LEFT JOIN
+        "imp"."public"."partner_lists" l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
+      LEFT JOIN
+        "imp"."public"."partner_triggers" t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+        WHERE otn.partner_id = '${partner.id}'
+          AND t.name = '${triggerName}'
+          ${dateFiltersSql}
+          order by otn.date_sent desc
+          limit ${lmt} offset ${offst};`);
 
     console.log("SQL QUERY: ", sqlQuery);
 
