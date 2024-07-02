@@ -392,7 +392,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
     console.log(" HERE BEFORE REDSHIFT RESOLVED ")
     const orgLngth = result.length;
-
+    console.log("FILTER PIXEL OWNER: ", filterPixelOwner);
     if (filterPixelOwner.toLowerCase() === 'my pixels') {
       result = result.filter(row => row.uuid !== 'Network');
       if (result[0]) {
