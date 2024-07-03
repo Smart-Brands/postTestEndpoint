@@ -438,8 +438,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     region: process.env.MY_AWS_REGION,
   });
 
-  const lmt = parseInt(limit);
-  const offst = parseInt(offset);
+  const lmt = parseInt(limit) || 10;
+  const offst = parseInt(offset) || 0;
   const dtObj = {
     fltrDate: filterDate,
     fromDate: fDate,
