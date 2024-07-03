@@ -487,12 +487,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
          ORDER BY ${sortColumn} ${sortDirection}
          limit ? offset ?`
 
+      console.log("LIMIT: ", limit, " | OFFSET: ", offset);
       queryParams.push(partner.id, limit, offset);
       // Prepare the count query with the same where clause
       let countQuery = `SELECT COUNT(*) AS total FROM outgoing_notifications${whereClause}`;
       const totalResult = await main.sql.query(countQuery, queryParams.slice(0, queryParams.length - 2));
       const totalRecords = parseInt(totalResult[0][0].total, 10);
-
+      console.log("QUERY PARAMS: ", queryParams);
       const result = await main.sql.query(query, queryParams);
       console.log("RESULT ARRAY: ", result)
 
