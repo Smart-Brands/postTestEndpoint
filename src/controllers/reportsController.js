@@ -488,7 +488,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
          limit ? offset ?`
 
       console.log("LIMIT: ", limit, " | OFFSET: ", offset);
-      queryParams.push(partner.id, limit, offset);
+      queryParams.push(partner.id, lmt, offst);
       // Prepare the count query with the same where clause
       let countQuery = `SELECT COUNT(*) AS total FROM outgoing_notifications${whereClause}`;
       const totalResult = await main.sql.query(countQuery, queryParams.slice(0, queryParams.length - 2));
