@@ -485,7 +485,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
          AND otn.partner_id = ?
          ${dateFiltersSql}
          ORDER BY ${sortColumn} ${sortDirection}
-         limit ? offset ?`
+         limit ? offset ?;`
 
       console.log("LIMIT: ", limit, " | OFFSET: ", offset);
       queryParams.push(partner.id, lmt, offst);
@@ -523,87 +523,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     // }
 
     console.log("BEFORE RETURN: ", result)
+    await main.sql.end();
     return main.responseWrapper(result);
   } catch (e) {
     console.log("ERROR: ", e);
-    return main.responseWrapper(e, e.statusCode || 500);
-  } finally {
     await main.sql.end();
+    return main.responseWrapper(e, e.statusCode || 500);
   }
-
-  /**** PUBNET VERSION ****/
-//   async function allPubnetData(req, res) {
-//     const { draw, start, length, search, order, user } = req.body;
-//     // User query input object
-//     let userInput = null;
-//     let connection;
-//     try {
-//         connection = await pubnetPool.getConnection();
-//         // Fetch column names dynamically
-//         const columnQuery = "SHOW COLUMNS FROM pubnet_apex_domains_summary";
-//         const columnResult = await connection.query(columnQuery);
-//         // Extract column names directly
-//         const columns = columnResult[0].map(col => col.Field);
-//         if (order !== undefined) {
-//             userInput = {
-//                 user: user,
-//                 page: 'All Pubnet',
-//                 searchCount: parseInt(draw),
-//                 paginationPage: parseInt(start),
-//                 resultPer: parseInt(length),
-//                 searchField: search.value,
-//                 orderDirection: order[0].dir || 'asc',
-//                 orderName: columns[parseInt(order[0].column)]
-//             }
-//         }
-//         if (userInput) {
-//             await pubnetQueryStore(userInput);
-//         }
-//         // Ensure numeric values for LIMIT and OFFSET
-//         const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
-//         const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
-//         // Determine sort order and column
-//         const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-//         const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-//         const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
-//         // Build the base query with sorting and dynamic filtering
-//         let queryParams = [];
-//         let whereClause = '';
-//         const searchValue = search?.value || '';
-//         if (searchValue) {
-//             // Apply search filter on a suitable column or multiple columns
-//             whereClause = ' WHERE ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
-//             queryParams = columns.map(() => `%${searchValue}%`); // Apply search term to all columns
-//         }
-//         let query = `
-//       SELECT ${columns.join(", ")}
-//       FROM pubnet_apex_domains_summary
-//       ${whereClause}
-//       ORDER BY ${sortColumn} ${sortDirection}
-//       LIMIT ? OFFSET ?`;
-//         queryParams.push(limit, offset);
-//         // Prepare the count query with the same where clause
-//         let countQuery = `SELECT COUNT(*) AS total FROM pubnet_apex_domains_summary${whereClause}`;
-//         // Use the same search parameters for count query
-//         const totalResult = await connection.query(countQuery, queryParams.slice(0, queryParams.length - 2));
-//         const totalRecords = parseInt(totalResult[0][0].total, 10);
-//         // Execute the main query
-//         const result = await connection.query(query, queryParams);
-//         const pubnets = result[0];
-//         res.json({
-//             draw: draw,
-//             recordsTotal: totalRecords,
-//             recordsFiltered: totalRecords,
-//             data: pubnets,
-//             columns: columns.map(name => ({ title: name, data: name }))
-//         });
-//     } catch (err) {
-//         console.error('Query error:', err);
-//         res.sendStatus(500);
-//     } finally {
-//         if (connection) connection.release();
-//     }
-// }
 }
 
 module.exports.getNotificationsForPartner = async event => {
