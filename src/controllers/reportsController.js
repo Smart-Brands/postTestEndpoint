@@ -419,17 +419,17 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   );
 
   const {
-    draw,
-    start,
-    length,
-    search,
-    order,
+    draw = 1,
+    // start,
+    // length,
+    search = "",
+    order = "undefined",
     limit = 10,
     offset = 0,
     filterDate = null,
     fDate = null,
     tDate = null,
-    filterPixelOwner,
+    // filterPixelOwner,
     triggerName = null,
     columns,
   } = event.body;
