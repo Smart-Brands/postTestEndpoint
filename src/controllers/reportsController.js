@@ -432,7 +432,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     filterPixelOwner,
     triggerName = null,
     columns,
-  } = req.body;
+  } = event.body;
 
   console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
