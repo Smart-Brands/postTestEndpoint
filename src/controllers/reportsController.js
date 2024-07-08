@@ -418,6 +418,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'POST Outgoing Notifications For Partner Event: ' + JSON.stringify(event),
   );
 
+  const req = JSON.parse(event);
+
   const {
     draw = 1,
     // start,
@@ -432,7 +434,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     // filterPixelOwner,
     triggerName = null,
     columns,
-  } = event.body;
+  } = req.body;
 
   console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
