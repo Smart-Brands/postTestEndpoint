@@ -496,8 +496,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
           AND otn.partner_id = ?
           ${dateFiltersSql}
           ORDER BY ${sortColumn} ${sortDirection}
-          limit ? offset ?`,
-      [partner.id, lmt, offst],
+          limit 10 offset 0`,
+      [partner.id],
     );
     console.log("RESULT ARRAY: ", result)
 
