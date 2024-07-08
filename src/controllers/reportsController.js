@@ -434,12 +434,16 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     columns,
   } = req.body;
 
+  console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
+
   const redshiftClient = new RedshiftDataClient({
     region: process.env.MY_AWS_REGION,
   });
 
   const lmt = parseInt(limit) || 10;
   const offst = parseInt(offset) || 0;
+  console.log("PARSEINT: lmt - ", lmt, typeof(lmt), " | offst - ", offst, typeof(offst));
+
   const dtObj = {
     fltrDate: filterDate,
     fromDate: fDate,
