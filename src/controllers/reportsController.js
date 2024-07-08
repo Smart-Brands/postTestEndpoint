@@ -418,6 +418,39 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'POST Outgoing Notifications For Partner Event: ' + JSON.stringify(event),
   );
 
+  if (lambdaEvent.body) {
+    try {
+        event.body = JSON.parse(lambdaEvent.body);
+    } catch (error) {
+        console.error('Error parsing event body:', error);
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Invalid request body format' }),
+        };
+    }
+} else {
+    console.error('Request body is missing');
+    return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Request body is missing' }),
+    };
+}
+
+try {
+    await postOutgoingNotificationsForPartner(event);
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Success' }),
+    };
+} catch (error) {
+    console.error('Error in postOutgoingNotificationsForPartner:', error);
+    return {
+        statusCode: 500,
+        body: JSON.stringify({ error: error.message }),
+    };
+}
+};
+
   const {
     draw = 1,
     // start,
