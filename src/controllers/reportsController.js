@@ -284,6 +284,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
   if(partner.id === 306) {
   // NEW REDSHIFT QUERY
+  console.log("REDSHIFT QUERY")
     try {
 
       const redshift = new Redshift();
@@ -337,7 +338,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
           filteredResult[0].org_length = orgLngth;
         }
       }
-
+      console.log("BEFORE REDSHIFT QUERY RETURN")
       return main.responseWrapper(filteredResult);
     } catch (e) {
       console.log(e);
