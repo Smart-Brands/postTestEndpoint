@@ -282,6 +282,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     emlField = 'c.email_address';
   }
 
+  console.log("HERE BEFORE CHECK FOR USER 306 FOR REDSHIFT QUERY");
   if(partner.id === 306) {
   // NEW REDSHIFT QUERY
   console.log("REDSHIFT QUERY")
