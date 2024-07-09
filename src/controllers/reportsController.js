@@ -9,6 +9,7 @@ const sftp = require('./sftp');
 const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand, GetStatementResultCommand } = require('@aws-sdk/client-redshift-data');
+const { Redshift } = require('aws-sdk');
 
 const checkPartnerNetworkIn = partner => {
   if (!partner.network_in) {
@@ -258,6 +259,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
     filterPixelOwner,
     triggerName = null,
   } = event.queryStringParameters;
+
   const lmt = parseInt(take);
   const offst = parseInt(offset);
   const dtObj = {
@@ -269,18 +271,91 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
   const dateFilterPart = setDateFilters(dtObj);
   const dateFiltersSql = !!dateFilterPart ? dateFilterPart : '';
   //const pixelOwnerFiltersSql = setPixelOwnerFilters(filterPixelOwner);
+  const partner = await main.authenticateUser(event);
 
-  try {
-    const partner = await main.authenticateUser(event);
+  checkPartnerNetworkIn(partner);
+  var emlField;
 
-    checkPartnerNetworkIn(partner);
-    var emlField;
+  if (partner.hash_access) {
+    emlField = 'c.email_hash';
+  } else {
+    emlField = 'c.email_address';
+  }
 
-    if (partner.hash_access) {
-      emlField = 'c.email_hash';
-    } else {
-      emlField = 'c.email_address';
+  if(partner.id === 306) {
+  // NEW REDSHIFT QUERY
+    try {
+
+      const redshift = new Redshift();
+
+      const query = `
+        SELECT ${emlField}, i.name AS integration_name,
+          COALESCE(p.uuid, 'Network') AS uuid,
+          COALESCE(p.pixel_name, 'Network') AS pixel_name,
+          COALESCE(p.description, 'Network') AS pixel_description,
+          COALESCE(l.name, 'Pixel') AS list_name, otn.*
+        FROM outgoing_notifications otn
+        INNER JOIN contacts c ON otn.contact_id = c.id
+        LEFT JOIN integrations i ON otn.integration_id = i.id
+        LEFT JOIN pixels p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
+        LEFT JOIN partner_lists l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
+        WHERE otn.partner_id = ?
+        ${dateFiltersSql}
+        ORDER BY otn.date_sent DESC
+        LIMIT ? OFFSET ?
+      `;
+
+      const params = {
+        ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
+        Database: process.env.REDSHIFT_DATABASE,
+        DbUser: process.env.REDSHIFT_USER,
+        DbPassword: process.env.REDSHIFT_DB_PASSWORD,
+        Sql: query,
+        SqlParameters: [partner.id, lmt, offst],
+      };
+
+      const result = await redshift.executeStatement(params).promise();
+
+      const orgLngth = result.Records.length;
+
+      let filteredResult = result.Records.map(row => {
+        // Convert Redshift result to object
+        return row.reduce((obj, field, index) => {
+          obj[result.ColumnMetadata[index].Name] = field.StringValue;
+          return obj;
+        }, {});
+      });
+
+      if (filterPixelOwner.toLowerCase() === 'my pixels') {
+        filteredResult = filteredResult.filter(row => row.uuid !== 'Network');
+        if (filteredResult[0]) {
+          filteredResult[0].org_length = orgLngth;
+        }
+      } else if (filterPixelOwner.toLowerCase() === 'network pixels') {
+        filteredResult = filteredResult.filter(row => row.uuid === 'Network');
+        if (filteredResult[0]) {
+          filteredResult[0].org_length = orgLngth;
+        }
+      }
+
+      return main.responseWrapper(filteredResult);
+    } catch (e) {
+      console.log(e);
+      return main.responseWrapper(e, e.statusCode || 500);
     }
+  } else {
+  // ORIGINAL MYSQL QUERY
+  try {
+    // const partner = await main.authenticateUser(event);
+
+    // checkPartnerNetworkIn(partner);
+    // var emlField;
+
+    // if (partner.hash_access) {
+    //   emlField = 'c.email_hash';
+    // } else {
+    //   emlField = 'c.email_address';
+    // }
     console.log("PARAMS: ID = ", partner.id, " | LIMIT = ", lmt, " | OFFSET = ", offst, " | TRIGGER NAME = ", triggerName)
     let result;
 
@@ -410,6 +485,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
   } catch (e) {
     console.log("ERROR: ", e);
     return main.responseWrapper(e, e.statusCode || 500);
+  }
   }
 };
 
