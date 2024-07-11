@@ -430,7 +430,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     tDate = null,
     triggerName = null,
     columns,
-  } = event;
+  } = event.body;
 
   console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
