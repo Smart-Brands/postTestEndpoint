@@ -460,7 +460,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     var emlField;
     // SORTING VARIABLES
-    console.log("ERR = Order: ", order, " | Cols: ", columns)
+    console.log("Order: ", order, " | Cols: ", columns)
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
     const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
     const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
@@ -482,8 +482,11 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("LIMIT: ", limit, " | OFFSET: ", offset);
     console.log("PARAMS: ID = ", partner.id, " | LIMIT = ", lmt, " | OFFSET = ", offst, " | TRIGGER NAME = ", triggerName)
       // Prepare the count query with the same where clause
+
     let countQuery = `SELECT COUNT(*) AS total FROM outgoing_notifications${whereClause}`;
+    console.log("BEFORE QUERY FOR COUNT: ", countQuery, " | ", searchValue)
     const totalResult = await main.sql.query(countQuery, queryParams.slice(0, queryParams.length - 2));
+    console.log("AFER QUERY FOR COUNT: ", totalResult)
     const totalRecords = parseInt(totalResult[0][0].total, 10);
     console.log("Check before query: ", emlField, ' ', whereClause, ' ', dateFiltersSql, " ", sortColumn, " ", sortDirection)
     const result = await main.sql.query(
