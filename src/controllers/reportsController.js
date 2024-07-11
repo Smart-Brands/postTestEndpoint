@@ -471,12 +471,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       // Apply search filter on a suitable column or multiple columns
       whereClause = ' WHERE ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
       queryParams = columns.map(() => `%${searchValue}%`); // Apply search term to all columns
-
-      let countQuery = `SELECT COUNT(*) AS total FROM outgoing_notifications${whereClause}`;
-      console.log("BEFORE QUERY FOR COUNT: ", countQuery, " | ", searchValue)
-      const totalResult = await main.sql.query(countQuery, queryParams.slice(0, queryParams.length - 2));
-      console.log("AFER QUERY FOR COUNT: ", totalResult)
-      const totalRecords = parseInt(totalResult[0][0].total, 10);
     }
 
     if (partner.hash_access) {
@@ -488,6 +482,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("LIMIT: ", limit, " | OFFSET: ", offset);
     console.log("PARAMS: ID = ", partner.id, " | LIMIT = ", lmt, " | OFFSET = ", offst, " | TRIGGER NAME = ", triggerName)
       // Prepare the count query with the same where clause
+
+    // let countQuery = `SELECT COUNT(*) AS total FROM outgoing_notifications${whereClause}`;
+    // console.log("BEFORE QUERY FOR COUNT: ", countQuery, " | ", searchValue)
+    // const totalResult = await main.sql.query(countQuery, queryParams.slice(0, queryParams.length - 2));
+    // console.log("AFER QUERY FOR COUNT: ", totalResult)
+    // const totalRecords = parseInt(totalResult[0][0].total, 10);
+    // console.log("Check before query: ", emlField, ' ', whereClause, ' ', dateFiltersSql, " ", sortColumn, " ", sortDirection)
 
     const result = await main.sql.query(
       `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
@@ -509,8 +510,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     const response = {
       draw: draw,
-      recordsTotal: totalRecords,
-      recordsFiltered: totalRecords,
+      recordsTotal: 10,
+      recordsFiltered: 10,
       data: result,
     };
 
