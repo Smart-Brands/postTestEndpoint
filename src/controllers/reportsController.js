@@ -416,27 +416,30 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 module.exports.postOutgoingNotificationsForPartner = async event => {
   console.log('POST Outgoing Notifications For Partner Event: ' + event);
   console.log("EVENT BODY: ", event.body)
-  try {
-  // const {
-  //   draw = 1,
-  //   start,
-  //   length,
-  //   search,
-  //   order = [[0, 'asc']],
-  //   // limit,
-  //   // offset,
-  //   filterDate = null,
-  //   fDate = null,
-  //   tDate = null,
-  //   triggerName = null,
-  //   // columns,
-  // } = event.body;
+  const data = JSON.parse(event.body)
 
-  const limit = event.body["limit"]
-  const offset = event.body["offset"]
-  const columns = event.body["columns"]
-  const order = event.body["order"] || [[0, 'asc']]
-  const draw = event.body["draw"] || 1
+  console.log("DATA: ", data);
+  try {
+  const {
+    draw = 1,
+    start,
+    length,
+    search,
+    order = [[0, 'asc']],
+    limit,
+    offset,
+    filterDate = null,
+    fDate = null,
+    tDate = null,
+    triggerName = null,
+    columns,
+  } = data;
+
+  // const limit = event.body["limit"]
+  // const offset = event.body["offset"]
+  // const columns = event.body["columns"]
+  // const order = event.body["order"] || [[0, 'asc']]
+  // const draw = event.body["draw"] || 1
   console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
   // const redshiftClient = new RedshiftDataClient({
