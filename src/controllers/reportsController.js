@@ -422,7 +422,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     start,
     length,
     search,
-    order = [],
+    order = [[0, 'asc']],
     limit = 10,
     offset = 0,
     filterDate = null,
