@@ -414,11 +414,10 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  console.log(
-    'POST Outgoing Notifications For Partner Event: ' + JSON.stringify(event),
-  );
+  console.log('POST Outgoing Notifications For Partner Event: ' + JSON.stringify(event));
 
-  const req = JSON.parse(event);
+  try {
+    const req = JSON.parse(event);
 
   const {
     draw = 1,
@@ -455,10 +454,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const dateFilterPart = setDateFilters(dtObj);
   const dateFiltersSql = !!dateFilterPart ? dateFilterPart : '';
 
-  try {
-    const partner = await main.authenticateUser(event);
+  const partner = await main.authenticateUser(event);
+  checkPartnerNetworkIn(partner);
 
-    checkPartnerNetworkIn(partner);
     var emlField;
     // SORTING VARIABLES
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
@@ -498,45 +496,27 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
           AND otn.partner_id = ?
           ${dateFiltersSql}
           ORDER BY ${sortColumn} ${sortDirection}
-          limit 10 offset 0`,
+          limit ${lmt} offset ${offst}`,
       [partner.id],
     );
+
     console.log("RESULT ARRAY: ", result)
 
-    const imList = result[0];
+    const response = {
+      draw: draw,
+      recordsTotal: totalRecords,
+      recordsFiltered: totalRecords,
+      data: result[0],
+    };
 
-    res.json({
-        draw: draw,
-        recordsTotal: totalRecords,
-        recordsFiltered: totalRecords,
-        data: imList,
-    });
-    // }
-
-    // console.log(" HERE BEFORE REDSHIFT RESOLVED ")
-    // const orgLngth = result.length;
-    // console.log("FILTER PIXEL OWNER: ", filterPixelOwner);
-    // if (filterPixelOwner.toLowerCase() === 'my pixels') {
-    //   result = result.filter(row => row.uuid !== 'Network');
-    //   if (result[0]) {
-    //     result[0].org_length = orgLngth;
-    //   }
-    // } else if (filterPixelOwner.toLowerCase() === 'network pixels') {
-    //   result = result.filter(row => row.uuid === 'Network');
-    //   if (result[0]) {
-    //     result[0].org_length = orgLngth;
-    //   }
-    // }
-
-    console.log("BEFORE RETURN: ", result)
     await main.sql.end();
-    return main.responseWrapper(result);
+    return main.responseWrapper(response);
   } catch (e) {
-    console.log("ERROR: ", e);
+    console.error("ERROR: ", e);
     await main.sql.end();
-    return main.responseWrapper(e, e.statusCode || 500);
+    return main.responseWrapper({ error: e.message }, e.statusCode || 500);
   }
-}
+};
 
 module.exports.getNotificationsForPartner = async event => {
   console.log(
