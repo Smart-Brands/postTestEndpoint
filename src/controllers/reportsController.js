@@ -435,11 +435,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     columns,
   } = data;
 
-  // const limit = event.body["limit"]
-  // const offset = event.body["offset"]
-  // const columns = event.body["columns"]
-  // const order = event.body["order"] || [[0, 'asc']]
-  // const draw = event.body["draw"] || 1
   console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
   // const redshiftClient = new RedshiftDataClient({
@@ -468,7 +463,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("ERR = Order: ", order, " | Cols: ", columns)
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
     const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-    const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+    const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0][1].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
     let queryParams = [];
     let whereClause = '';
     const searchValue = search?.value || '';
