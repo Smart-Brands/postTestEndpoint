@@ -414,11 +414,9 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  console.log('POST Outgoing Notifications For Partner Event: ' + JSON.stringify(event));
+  console.log('POST Outgoing Notifications For Partner Event: ' + event);
 
   try {
-    const req = JSON.parse(event);
-
   const {
     draw = 1,
     start,
@@ -432,7 +430,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     tDate = null,
     triggerName = null,
     columns,
-  } = req.body;
+  } = JSON.parse(event.body);
 
   console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
@@ -495,9 +493,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
           AND otn.partner_id = ?
           ${dateFiltersSql}
           ORDER BY ${sortColumn} ${sortDirection}
-          limit ${lmt} offset ${offst}`,
-      [partner.id],
-    );
+          limit ? offset ?`,
+          [partner.id, lmt, offst],
+      );
 
     console.log("RESULT ARRAY: ", result)
 
@@ -505,7 +503,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       draw: draw,
       recordsTotal: totalRecords,
       recordsFiltered: totalRecords,
-      data: result[0],
+      data: result,
     };
 
     console.log("RESPONSE: ", response);
