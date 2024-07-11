@@ -441,7 +441,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   //   region: process.env.MY_AWS_REGION,
   // });
 
-  const lmt = parseInt(limit) || 10;
+  // const lmt = parseInt(limit) || 10;
+  const lmt = 1
   const offst = parseInt(offset) || 0;
   console.log("PARSEINT: lmt - ", lmt, typeof(lmt), " | offst - ", offst, typeof(offst));
 
@@ -510,8 +511,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     const response = {
       draw: draw,
-      recordsTotal: 10,
-      recordsFiltered: 10,
+      recordsTotal: 5,
+      recordsFiltered: 5,
       data: result,
     };
 
