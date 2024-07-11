@@ -421,8 +421,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const {
     draw = 1,
-    // start,
-    // length,
+    start,
+    length,
     search = "",
     order = "undefined",
     limit = 10,
@@ -430,16 +430,15 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     filterDate = null,
     fDate = null,
     tDate = null,
-    // filterPixelOwner,
     triggerName = null,
     columns,
   } = req.body;
 
   console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
-  const redshiftClient = new RedshiftDataClient({
-    region: process.env.MY_AWS_REGION,
-  });
+  // const redshiftClient = new RedshiftDataClient({
+  //   region: process.env.MY_AWS_REGION,
+  // });
 
   const lmt = parseInt(limit) || 10;
   const offst = parseInt(offset) || 0;
@@ -508,6 +507,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       recordsFiltered: totalRecords,
       data: result[0],
     };
+
+    console.log("RESPONSE: ", response);
 
     await main.sql.end();
     return main.responseWrapper(response);
