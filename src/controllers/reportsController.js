@@ -425,7 +425,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     start,
     length,
     search,
-    order = [[0, 'asc']],
+    order = [{column: 0, dir: 'asc', name: ''}],
     limit,
     offset,
     filterDate = null,
@@ -463,7 +463,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("ERR = Order: ", order, " | Cols: ", columns)
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
     const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-    const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0][1].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+    const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
     let queryParams = [];
     let whereClause = '';
     const searchValue = search?.value || '';
