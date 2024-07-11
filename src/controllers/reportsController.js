@@ -414,8 +414,8 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  console.log('POST Outgoing Notifications For Partner Event: ' + event);
-
+  console.log('POST Outgoing Notifications For Partner Event: ' + JSON.parse(event));
+  console.log("EVENT BODY: ", event.body)
   try {
   const {
     draw = 1,
