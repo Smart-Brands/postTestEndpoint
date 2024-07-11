@@ -422,7 +422,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     start,
     length,
     search,
-    order,
+    order = [],
     limit = 10,
     offset = 0,
     filterDate = null,
@@ -456,9 +456,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     var emlField;
     // SORTING VARIABLES
+    console.log("ERR: ", order)
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
     const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-    console.log("ERR: ", order)
     const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
     let queryParams = [];
     let whereClause = '';
