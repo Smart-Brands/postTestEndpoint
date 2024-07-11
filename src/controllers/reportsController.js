@@ -414,7 +414,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  console.log('POST Outgoing Notifications For Partner Event: ' + JSON.parse(event));
+  console.log('POST Outgoing Notifications For Partner Event: ' + event);
   console.log("EVENT BODY: ", event.body)
   try {
   const {
@@ -453,11 +453,11 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const partner = await main.authenticateUser(event);
   checkPartnerNetworkIn(partner);
+  console.log("CHECK: ", dtObj)
 
     var emlField;
     // SORTING VARIABLES
-    console.log("ERR: ", order)
-    console.log("ERR: ", columns)
+    console.log("ERR = Order: ", order, " | Cols: ", columns)
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
     const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
     const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
@@ -482,7 +482,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     let countQuery = `SELECT COUNT(*) AS total FROM outgoing_notifications${whereClause}`;
     const totalResult = await main.sql.query(countQuery, queryParams.slice(0, queryParams.length - 2));
     const totalRecords = parseInt(totalResult[0][0].total, 10);
-
+    console.log("Check before query: ", emlField, ' ', whereClause, ' ', dateFiltersSql, " ", sortColumn, " ", sortDirection)
     const result = await main.sql.query(
       `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
           from outgoing_notifications otn
