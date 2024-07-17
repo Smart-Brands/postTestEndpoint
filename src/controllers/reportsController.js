@@ -491,12 +491,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
           left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
           left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
           WHERE 1 = 1
-          ?
+          ${whereClause}
           AND otn.partner_id = ?
-          ?
-          ORDER BY ? ?
+          ${dateFiltersSql}
+          ORDER BY ${sortColumn} ${sortDirection}
           limit ? offset ?`,
-          [whereClause, partner.id, dateFiltersSql, sortColumn, sortDirection, lmt, offst],
+          [partner.id, lmt, offst],
       );
 
     console.log("RESULT ARRAY: ", result)
