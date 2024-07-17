@@ -468,6 +468,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     let queryParams = [];
     let whereClause = '';
     const searchValue = search?.value || '';
+
     if (searchValue) {
       // Apply search filter on a suitable column or multiple columns
       whereClause = 'AND ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
@@ -503,8 +504,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
           ${whereClause}
           AND otn.partner_id = ?
           ${dateFiltersSql}
-          limit ? offset ?
-          ORDER BY ${sortColumn} ${sortDirection}`,
+          ORDER BY ${sortColumn} ${sortDirection}
+          limit 1 offset 0`,
           [partner.id, lmt, offst],
       );
 
