@@ -470,7 +470,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     const searchValue = search?.value || '';
     if (searchValue) {
       // Apply search filter on a suitable column or multiple columns
-      whereClause = ' WHERE ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
+      whereClause = 'AND ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
       queryParams = columns.map(() => `%${searchValue}%`); // Apply search term to all columns
     }
 
@@ -499,6 +499,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
           left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
           left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
           left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+          WHERE 1 = 1
           ${whereClause}
           AND otn.partner_id = ?
           ${dateFiltersSql}
