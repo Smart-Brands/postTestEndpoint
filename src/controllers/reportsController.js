@@ -414,11 +414,10 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  console.log('POST Outgoing Notifications For Partner Event: ' + event);
   console.log("EVENT BODY: ", event.body)
   const data = JSON.parse(event.body)
-
   console.log("DATA: ", data);
+
   try {
   const {
     draw = 1,
@@ -435,16 +434,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     columns,
   } = data;
 
-  console.log("REQ BODY: Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
-
   // const redshiftClient = new RedshiftDataClient({
   //   region: process.env.MY_AWS_REGION,
   // });
 
-  // const lmt = parseInt(limit) || 10;
-  const lmt = 1
+  const lmt = parseInt(limit) || 10;
   const offst = parseInt(offset) || 0;
-  console.log("PARSEINT: lmt - ", lmt, typeof(lmt), " | offst - ", offst, typeof(offst));
+  console.log("PARSEINT: lmt - ", lmt, typeof(lmt), " | offst - ", offst, typeof(offst), " | Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
   const dtObj = {
     fltrDate: filterDate,
@@ -465,16 +461,16 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
     // const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
     const sortColumnObj = columns[sortColumnIndex] || columns[0];
-const sortColumn = 'email_address'
+    const sortColumn = 'email_address'
     const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+    console.log("SORT COL Vars: ", sortColumnIndex, ' | ', sortColumnObj, " | ", sortColumn, ' | ', sortDirection);
     let queryParams = [];
     let whereClause = '';
     const searchValue = search?.value || '';
 
     if (searchValue) {
-      // Apply search filter on a suitable column or multiple columns
       whereClause = 'AND ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
-      queryParams = columns.map(() => `%${searchValue}%`); // Apply search term to all columns
+      queryParams = columns.map(() => `%${searchValue}%`);
     }
 
     if (partner.hash_access) {
@@ -485,14 +481,6 @@ const sortColumn = 'email_address'
 
     console.log("LIMIT: ", limit, " | OFFSET: ", offset);
     console.log("PARAMS: ID = ", partner.id, " | LIMIT = ", lmt, " | OFFSET = ", offst, " | TRIGGER NAME = ", triggerName)
-      // Prepare the count query with the same where clause
-
-    // let countQuery = `SELECT COUNT(*) AS total FROM outgoing_notifications${whereClause}`;
-    // console.log("BEFORE QUERY FOR COUNT: ", countQuery, " | ", searchValue)
-    // const totalResult = await main.sql.query(countQuery, queryParams.slice(0, queryParams.length - 2));
-    // console.log("AFER QUERY FOR COUNT: ", totalResult)
-    // const totalRecords = parseInt(totalResult[0][0].total, 10);
-    // console.log("Check before query: ", emlField, ' ', whereClause, ' ', dateFiltersSql, " ", sortColumn, " ", sortDirection)
 
     const result = await main.sql.query(
       `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
@@ -503,12 +491,12 @@ const sortColumn = 'email_address'
           left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
           left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
           WHERE 1 = 1
-          ${whereClause}
+          ?
           AND otn.partner_id = ?
-          ${dateFiltersSql}
-          ORDER BY ${sortColumn} ${sortDirection}
+          ?
+          ORDER BY ? ?
           limit ? offset ?`,
-          [partner.id, lmt, offst],
+          [whereClause, partner.id, dateFiltersSql, sortColumn, sortDirection, lmt, offst],
       );
 
     console.log("RESULT ARRAY: ", result)
