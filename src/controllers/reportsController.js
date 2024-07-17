@@ -503,8 +503,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
           ${whereClause}
           AND otn.partner_id = ?
           ${dateFiltersSql}
-          ORDER BY ${sortColumn} ${sortDirection}
-          limit ? offset ?`,
+          limit ? offset ?
+          ORDER BY ${sortColumn} ${sortDirection}`,
           [partner.id, lmt, offst],
       );
 
