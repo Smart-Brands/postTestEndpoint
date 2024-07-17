@@ -463,7 +463,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     // SORTING VARIABLES
     console.log("Order: ", order, " | Cols: ", columns)
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-    const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+    // const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+    const sortColumnObj = columns[sortColumnIndex] || columns[0];
+const sortColumn = sortColumnObj.name || sortColumnObj.field
     const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
     let queryParams = [];
     let whereClause = '';
