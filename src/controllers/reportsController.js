@@ -507,7 +507,7 @@ const sortColumn = sortColumnObj.name || sortColumnObj.field
           AND otn.partner_id = ?
           ${dateFiltersSql}
           ORDER BY ${sortColumn} ${sortDirection}
-          limit 1 offset 0`,
+          limit ? offset ?`,
           [partner.id, lmt, offst],
       );
 
