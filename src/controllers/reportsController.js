@@ -461,7 +461,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
         ${whereClause}
         AND otn.partner_id = ?
         AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
-        ${dateFiltersSql}
         ORDER BY ${sortColumn} ${sortDirection}
         limit ? offset ?`;
 
@@ -479,9 +478,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
         WHERE 1 = 1
         ${whereClause}
         AND otn.partner_id = ?
-        AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
-        ${dateFiltersSql}
-        ORDER BY ${sortColumn} ${sortDirection}) AS a`;
+        AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
 
 
   // Exclude LIMIT and OFFSET from count query parameters
