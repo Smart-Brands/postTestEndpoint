@@ -429,8 +429,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 module.exports.postOutgoingNotificationsForPartner = async event => {
     const { action, draw, start, length, order, queryId } = JSON.parse(event.body);
     const partner = await main.authenticateUser(event);
-    console.log("ACTION:", action)
-  return main.responseWrapper(action);
+
     if (action === 'initialize') {
       return initializeQuery({ draw, start, length, order, partner });
     } else if (action === 'poll') {
@@ -496,6 +495,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     await client.connect();
 
     const newQueryId = uuidv4();
+    return main.responseWrapper(newQueryId);
+
     queries.set(newQueryId, { status: 'running', data: null });
 
     client.query(query, queryParams, (err, res) => {
