@@ -1,6 +1,8 @@
 'use strict';
 const main = require('../main');
 const { Client } = require('pg');
+const { v4: uuidv4 } = require('uuid');
+
 const redshift = require('../redshift');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 const uuid = require('uuid');
@@ -10,6 +12,16 @@ const sftp = require('./sftp');
 const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand, GetStatementResultCommand } = require('@aws-sdk/client-redshift-data');
+
+const client = new Client({
+  user: process.env.REDSHIFT_USER,
+  host: process.env.REDSHIFT_HOST,
+  database: process.env.REDSHIFT_DATABASE,
+  password: process.env.REDSHIFT_DB_PASSWORD,
+  port: process.env.REDSHIFT_PORT,
+});
+
+const queries = new Map(); // A simple in-memory storage for query status and results
 
 const checkPartnerNetworkIn = partner => {
   if (!partner.network_in) {
@@ -415,119 +427,110 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  const { draw, start, length, order } = JSON.parse(event.body);
-  const partner = await main.authenticateUser(event);
+    const { action, draw, start, length, order, queryId } = JSON.parse(event.body);
 
-  // Ensure numeric values for LIMIT and OFFSET
-  const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
-  const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
+    if (action === 'initialize') {
+      return initializeQuery({ draw, start, length, order });
+    } else if (action === 'poll') {
+      return checkQueryStatus(queryId);
+    } else if (action === 'fetchResults') {
+      return getQueryResults(queryId);
+    } else {
+      return main.responseWrapper({ status: 'error', error: 'Invalid action' });
+    }
+  };
 
-  const columns = [
-    'email_address',
-    'pixel_id',
-    'pixel_name',
-    'pixel_description',
-    'list_name',
-    'integration_name',
-    'status_code',
-    'response_text',
-    'date_created',
-    'date_sent',
-  ];
+  const initializeQuery = async ({ draw, start, length, order }) => {
+    const partner = await main.authenticateUser(event);
 
-  // Determine sort order and column
-  const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-  const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-  const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+    // Ensure numeric values for LIMIT and OFFSET
+    const limit = parseInt(length, 10) || 10;
+    const offset = parseInt(start, 10) || 0;
 
-  // Build the base query with sorting and dynamic filtering
-  let queryParams = [partner.id];
-  let whereClause = '';
+    const columns = [
+      'email_address',
+      'pixel_id',
+      'pixel_name',
+      'pixel_description',
+      'list_name',
+      'integration_name',
+      'status_code',
+      'response_text',
+      'date_created',
+      'date_sent',
+    ];
 
-  let emlField = '';
-  if (partner.hash_access) {
-    emlField = 'c.email_hash';
-  } else {
-    emlField = 'c.email_address';
-  }
+    const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
+    const sortColumn = columns[sortColumnIndex] || columns[0];
+    const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
 
-  const query = `SELECT ${emlField}, i.name AS integration_name,
-        COALESCE(p.uuid, 'Network') AS uuid,
-        COALESCE(p.pixel_name, 'Network') AS pixel_name,
-        COALESCE(p.description, 'Network') AS pixel_description,
-        COALESCE(l.name, 'Pixel') AS list_name,
-        t.name AS trigger_name, otn.*
-        FROM outgoing_notifications otn
-        INNER JOIN contacts c ON otn.contact_id = c.id
-        LEFT JOIN integrations i ON otn.integration_id = i.id
-        LEFT JOIN pixels p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
-        LEFT JOIN partner_lists l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
-        LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-        WHERE 1 = 1
-        ${whereClause}
-        AND otn.partner_id = $1
-        AND otn.date_sent > dateadd(day, -30, GETDATE())
-        ORDER BY ${sortColumn} ${sortDirection}
-        LIMIT $2
-        OFFSET $3`;
+    let queryParams = [partner.id];
+    let whereClause = '';
 
-  // Append LIMIT and OFFSET parameters
-  queryParams.push(limit, offset);
+    let emlField = partner.hash_access ? 'c.email_hash' : 'c.email_address';
 
-  // Prepare the count query with the same where clause
-  let countQuery = `SELECT COUNT(*) AS total
-        FROM (SELECT ${emlField}, i.name AS integration_name,
-        COALESCE(p.uuid, 'Network') AS uuid,
-        COALESCE(p.pixel_name, 'Network') AS pixel_name,
-        COALESCE(p.description, 'Network') AS pixel_description,
-        COALESCE(l.name, 'Pixel') AS list_name,
-        t.name AS trigger_name, otn.*
-        FROM outgoing_notifications otn
-        INNER JOIN contacts c ON otn.contact_id = c.id
-        LEFT JOIN integrations i ON otn.integration_id = i.id
-        LEFT JOIN pixels p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
-        LEFT JOIN partner_lists l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
-        LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-        WHERE 1 = 1
-        ${whereClause}
-        AND otn.partner_id = $1
-        AND otn.date_sent > dateadd(day, -30, GETDATE())) AS a`;
+    const query = `SELECT ${emlField}, i.name AS integration_name,
+          COALESCE(p.uuid, 'Network') AS uuid,
+          COALESCE(p.pixel_name, 'Network') AS pixel_name,
+          COALESCE(p.description, 'Network') AS pixel_description,
+          COALESCE(l.name, 'Pixel') AS list_name,
+          t.name AS trigger_name, otn.*
+          FROM outgoing_notifications otn
+          INNER JOIN contacts c ON otn.contact_id = c.id
+          LEFT JOIN integrations i ON otn.integration_id = i.id
+          LEFT JOIN pixels p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
+          LEFT JOIN partner_lists l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
+          LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+          WHERE 1 = 1
+          ${whereClause}
+          AND otn.partner_id = $1
+          AND otn.date_sent > dateadd(day, -30, GETDATE())
+          ORDER BY ${sortColumn} ${sortDirection}
+          LIMIT $2
+          OFFSET $3`;
 
-  // Exclude LIMIT and OFFSET from count query parameters
-  const countParams = queryParams.slice(0, queryParams.length - 2);
+    queryParams.push(limit, offset);
 
-  // Database connection details
-  const client = new Client({
-    user: process.env.REDSHIFT_USER,
-    host: process.env.REDSHIFT_HOST,
-    database: process.env.REDSHIFT_DATABASE,
-    password: process.env.REDSHIFT_DB_PASSWORD,
-    port: process.env.REDSHIFT_PORT,
-  });
+    const client = new Client(REDSHIFT_CONFIG);
+    await client.connect();
 
-  await client.connect();
+    const newQueryId = uuidv4();
+    queries.set(newQueryId, { status: 'running', data: null });
 
-  try {
-    // Execute the count query
-    // const totalResult = await client.query(countQuery, countParams);
-    const totalRecords = parseInt(totalResult.rows[0].total, 10);
+    client.query(query, queryParams, (err, res) => {
+      if (err) {
+        queries.set(newQueryId, { status: 'error', error: err });
+      } else {
+        queries.set(newQueryId, { status: 'completed', data: res.rows });
+      }
+      client.end();
+    });
 
-    // Execute the main query
-    const result = await client.query(query, queryParams);
-    const rows = result.rows;
+    return main.responseWrapper({ queryId: newQueryId });
+  };
 
-    // Construct the response
-    const response = {
-      draw: draw,
-      recordsTotal: totalRecords,
-      recordsFiltered: totalRecords,
-      data: rows,
-    };
+  const checkQueryStatus = async queryId => {
+    if (!queries.has(queryId)) {
+      return main.responseWrapper({ status: 'error', error: 'Invalid query ID' });
+    }
 
-    return main.responseWrapper(response);
-  } finally {
-    await client.end();
-  }
+    const queryStatus = queries.get(queryId);
+
+    return main.responseWrapper(queryStatus);
+  };
+
+  const getQueryResults = async queryId => {
+    if (!queries.has(queryId)) {
+      return main.responseWrapper({ status: 'error', error: 'Invalid query ID' });
+    }
+
+    const queryStatus = queries.get(queryId);
+
+    if (queryStatus.status !== 'completed') {
+      return main.responseWrapper({ status: 'error', error: 'Query not completed yet' });
+    }
+
+    return main.responseWrapper({ status: 'completed', data: queryStatus.data });
 };
 
 
