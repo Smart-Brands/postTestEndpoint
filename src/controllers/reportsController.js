@@ -443,6 +443,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   let queryParams = [partner.id];
   let whereClause = '';
 
+  let emlField = '';
+  if (partner.hash_access) {
+    emlField = 'c.email_hash';
+  } else {
+    emlField = 'c.email_address';
+  }
 
   const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
         from outgoing_notifications otn
