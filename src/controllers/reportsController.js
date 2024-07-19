@@ -13,13 +13,15 @@ const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand, GetStatementResultCommand } = require('@aws-sdk/client-redshift-data');
 
-const client = new Client({
+const REDSHIFT_CONFIG = {
   user: process.env.REDSHIFT_USER,
   host: process.env.REDSHIFT_HOST,
   database: process.env.REDSHIFT_DATABASE,
   password: process.env.REDSHIFT_DB_PASSWORD,
   port: process.env.REDSHIFT_PORT,
-});
+}
+
+const client = new Client(REDSHIFT_CONFIG);
 
 const queries = new Map(); // A simple in-memory storage for query status and results
 
@@ -491,6 +493,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     queryParams.push(limit, offset);
 
+    const client = new Client(REDSHIFT_CONFIG);
     await client.connect();
 
     const newQueryId = uuidv4();
