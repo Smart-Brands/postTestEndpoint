@@ -426,11 +426,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'email_address',
     'pixel_id',
     'pixel_name',
-    'date_created',
+    'pixel_description',
     'list_name',
     'integration_name',
     'status_code',
     'response_text',
+    'date_created',
     'date_sent',
   ];
 
