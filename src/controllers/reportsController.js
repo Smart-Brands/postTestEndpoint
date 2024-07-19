@@ -495,7 +495,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     await client.connect();
 
     const newQueryId = uuidv4();
-    return main.responseWrapper(newQueryId);
 
     queries.set(newQueryId, { status: 'running', data: null });
 
@@ -505,6 +504,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       } else {
         queries.set(newQueryId, { status: 'completed', data: res.rows });
       }
+      return main.responseWrapper(queries);
+
       client.end();
     });
 
