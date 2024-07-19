@@ -414,71 +414,180 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  console.log("EVENT BODY: ", event.body)
-  const data = JSON.parse(event.body)
-  console.log("DATA: ", data);
+  // console.log("EVENT BODY: ", event.body)
+  // const data = JSON.parse(event.body)
+  // console.log("DATA: ", data);
 
-  try {
-  const {
-    draw = 1,
-    start,
-    length,
-    search,
-    order = [{column: 0, dir: 'asc', name: ''}],
-    limit,
-    offset,
-    filterDate = null,
-    fDate = null,
-    tDate = null,
-    columns,
-  } = data;
+  // try {
+  // const {
+  //   draw = 1,
+  //   start,
+  //   length,
+  //   search,
+  //   order = [{column: 0, dir: 'asc', name: ''}],
+  //   limit,
+  //   offset,
+  //   filterDate = null,
+  //   fDate = null,
+  //   tDate = null,
+  //   columns,
+  // } = data;
 
   // const redshiftClient = new RedshiftDataClient({
   //   region: process.env.MY_AWS_REGION,
   // });
 
-  const lmt = parseInt(limit) || 10;
-  const offst = parseInt(offset) || 0;
-  console.log("PARSEINT: lmt - ", lmt, typeof(lmt), " | offst - ", offst, typeof(offst), " | Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
+  // const lmt = parseInt(limit) || 10;
+  // const offst = parseInt(offset) || 0;
+  // console.log("PARSEINT: lmt - ", lmt, typeof(lmt), " | offst - ", offst, typeof(offst), " | Limit - ", limit, typeof(limit), " | Offset - ", offset, typeof(offset));
 
-  const dtObj = {
-    fltrDate: filterDate,
-    fromDate: fDate,
-    toDate: tDate,
-    field: 'otn.date_sent',
+  // const dtObj = {
+  //   fltrDate: filterDate,
+  //   fromDate: fDate,
+  //   toDate: tDate,
+  //   field: 'otn.date_sent',
+  // };
+  // const dateFilterPart = setDateFilters(dtObj);
+  // const dateFiltersSql = !!dateFilterPart ? dateFilterPart : '';
+
+  // const partner = await main.authenticateUser(event);
+  // checkPartnerNetworkIn(partner);
+  // console.log("CHECK: ", dtObj)
+
+//?
+
+// if (datatables === 'yes') {
+  const { draw, start, length, search, order } = JSON.parse(event.body);
+
+  // Ensure numeric values for LIMIT and OFFSET
+  const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
+  const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
+
+  // Define columns and column aliases
+  // const columns = [
+  //   'pt.name',
+  //   'pt.description',
+  //   'i.name',
+  //   'pt.status'
+  // ];
+
+  const columns = [
+    'email_address',
+    'pixel_id',
+    'pixel_name',
+    'date_created',
+    'list_name',
+    'integration_name',
+    'status_code',
+    'response_text',
+    'date_sent',
+  ];
+
+  // Determine sort order and column
+  const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
+  const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+  const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+
+  // Build the base query with sorting and dynamic filtering
+  let queryParams = [partner.id];
+  let whereClause = '';
+  // const searchValue = search?.value || '';
+
+  // if (searchValue) {
+  //   // Apply search filter on a suitable column or multiple columns
+  //   const searchConditions = columns.map(() => 'pt.name LIKE ? OR pt.description LIKE ? OR i.name LIKE ? OR pt.status LIKE ?').join(' OR ');
+  //   whereClause += ' AND (' + searchConditions + ')';
+  //   // Add the search value for each column
+  //   const searchParams = new Array(columns.length * 4).fill(`%${searchValue}%`); // Apply search term to all columns
+  //   queryParams = queryParams.concat(searchParams);
+  // }
+
+
+  const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+        from outgoing_notifications otn
+        inner join contacts c on otn.contact_id = c.id
+        left join integrations i on otn.integration_id = i.id
+        left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+        left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+        left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+        WHERE 1 = 1
+        ${whereClause}
+        AND otn.partner_id = ?
+        AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ${dateFiltersSql}
+        ORDER BY ${sortColumn} ${sortDirection}
+        limit ? offset ?`;
+
+  // Append LIMIT and OFFSET parameters
+  queryParams.push(limit, offset);
+
+  // Prepare the count query with the same where clause
+  let countQuery = `SELECT COUNT(*) FROM (select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+        from outgoing_notifications otn
+        inner join contacts c on otn.contact_id = c.id
+        left join integrations i on otn.integration_id = i.id
+        left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+        left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+        left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+        WHERE 1 = 1
+        ${whereClause}
+        AND otn.partner_id = ?
+        AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ${dateFiltersSql}
+        ORDER BY ${sortColumn} ${sortDirection}) AS a`;
+
+
+  // Exclude LIMIT and OFFSET from count query parameters
+  const countParams = queryParams.slice(0, queryParams.length - 2);
+
+  // Execute the count query
+  const totalResult = await main.sql.query(countQuery, countParams);
+  const totalRecords = parseInt(totalResult[0].total, 10);
+
+  // Execute the main query
+  const result = await main.sql.query(query, queryParams);
+  const rows = result;
+
+  // Construct the response
+  const response = {
+    draw: draw,
+    recordsTotal: totalRecords,
+    recordsFiltered: totalRecords,
+    data: rows,
   };
-  const dateFilterPart = setDateFilters(dtObj);
-  const dateFiltersSql = !!dateFilterPart ? dateFilterPart : '';
 
-  const partner = await main.authenticateUser(event);
-  checkPartnerNetworkIn(partner);
-  console.log("CHECK: ", dtObj)
+  await main.sql.end();
 
-    var emlField;
-    // SORTING VARIABLES
-    console.log("Order: ", order, " | Cols: ", columns)
-    const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-    // const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-    const sortColumnObj = columns[sortColumnIndex] || columns[0];
-    const sortColumn = 'email_address'
-    const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
-    console.log("SORT COL Vars: ", sortColumnIndex, ' | ', sortColumnObj, " | ", sortColumn, ' | ', sortDirection);
-    let queryParams = [];
-    let whereClause = '';
-    const searchValue = search?.value || '';
+  return main.responseWrapper(response);
+// }
 
-    if (searchValue) {
-      whereClause = 'AND ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
-      queryParams = columns.map(() => `%${searchValue}%`);
-    }
+//?
 
-    if (partner.hash_access) {
-      emlField = 'c.email_hash';
-    } else {
-      emlField = 'c.email_address';
-    }
+    // var emlField;
+    // // SORTING VARIABLES
+    // console.log("Order: ", order, " | Cols: ", columns)
+    // const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
+    // // const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+    // const sortColumnObj = columns[sortColumnIndex] || columns[0];
+    // const sortColumn = 'email_address'
+    // const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+    // console.log("SORT COL Vars: ", sortColumnIndex, ' | ', sortColumnObj, " | ", sortColumn, ' | ', sortDirection);
+    // let queryParams = [];
+    // let whereClause = '';
+    // const searchValue = search?.value || '';
 
-    console.log("LIMIT: ", limit, " | OFFSET: ", offset);
+    // if (searchValue) {
+    //   whereClause = 'AND ' + columns.map(col => `${col} LIKE ?`).join(' OR ');
+    //   queryParams = columns.map(() => `%${searchValue}%`);
+    // }
+
+    // if (partner.hash_access) {
+    //   emlField = 'c.email_hash';
+    // } else {
+    //   emlField = 'c.email_address';
+    // }
+
+    // console.log("LIMIT: ", limit, " | OFFSET: ", offset);
     // return main.responseWrapper(`PARAMS: ID = ${partner.id} | LIMIT = ${lmt} | OFFSET = ${offst} ;  select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
     //   from outgoing_notifications otn
     //   inner join contacts c on otn.contact_id = c.id
@@ -493,42 +602,42 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     //   ORDER BY ${sortColumn} ${sortDirection}
     //   limit ${lmt} offset ${offst}`)
 
-    const result = await main.sql.query(
-      `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-          from outgoing_notifications otn
-          inner join contacts c on otn.contact_id = c.id
-          left join integrations i on otn.integration_id = i.id
-          left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-          left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-          left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-          WHERE 1 = 1
-          ${whereClause}
-          AND otn.partner_id = ?
-          ${dateFiltersSql}
-          ORDER BY ${sortColumn} ${sortDirection}
-          limit ? offset ?`,
-          [partner.id, lmt, offst],
-      );
+  //   const result = await main.sql.query(
+  //     `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+  //         from outgoing_notifications otn
+  //         inner join contacts c on otn.contact_id = c.id
+  //         left join integrations i on otn.integration_id = i.id
+  //         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+  //         left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+  //         left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+  //         WHERE 1 = 1
+  //         ${whereClause}
+  //         AND otn.partner_id = ?
+  //         ${dateFiltersSql}
+  //         ORDER BY ${sortColumn} ${sortDirection}
+  //         limit ? offset ?`,
+  //         [partner.id, lmt, offst],
+  //     );
 
-      return main.responseWrapper(result);
-      console.log("RESULT ARRAY: ", result)
+  //     return main.responseWrapper(result);
+  //     console.log("RESULT ARRAY: ", result)
 
-    const response = {
-      draw: draw,
-      recordsTotal: 5,
-      recordsFiltered: 5,
-      data: result,
-    };
+  //   const response = {
+  //     draw: draw,
+  //     recordsTotal: 5,
+  //     recordsFiltered: 5,
+  //     data: result,
+  //   };
 
-    console.log("RESPONSE: ", response);
+  //   console.log("RESPONSE: ", response);
 
-    await main.sql.end();
-    return main.responseWrapper(response);
-  } catch (e) {
-    console.error("ERROR: ", e);
-    await main.sql.end();
-    return main.responseWrapper({ error: e.message }, e.statusCode || 500);
-  }
+  //   await main.sql.end();
+  //   return main.responseWrapper(response);
+  // } catch (e) {
+  //   console.error("ERROR: ", e);
+  //   await main.sql.end();
+  //   return main.responseWrapper({ error: e.message }, e.statusCode || 500);
+  // }
 };
 
 module.exports.getNotificationsForPartner = async event => {
