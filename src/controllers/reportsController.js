@@ -504,12 +504,10 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       } else {
         queries.set(newQueryId, { status: 'completed', data: res.rows });
       }
-      return main.responseWrapper(queries);
-
       client.end();
     });
 
-    return main.responseWrapper({ queryId: newQueryId });
+    return main.responseWrapper(queries);
   };
 
   const checkQueryStatus = async queryId => {
