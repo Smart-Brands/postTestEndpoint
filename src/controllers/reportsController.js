@@ -509,7 +509,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   try {
     // Execute the count query
-    const totalResult = await client.query(countQuery, countParams);
+    // const totalResult = await client.query(countQuery, countParams);
     const totalRecords = parseInt(totalResult.rows[0].total, 10);
 
     // Execute the main query
