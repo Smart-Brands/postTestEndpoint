@@ -491,7 +491,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     queryParams.push(limit, offset);
 
-    const client = new Client(REDSHIFT_CONFIG);
     await client.connect();
 
     const newQueryId = uuidv4();
