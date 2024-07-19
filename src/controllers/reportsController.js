@@ -21,8 +21,6 @@ const REDSHIFT_CONFIG = {
   port: process.env.REDSHIFT_PORT,
 }
 
-const client = new Client(REDSHIFT_CONFIG);
-
 const queries = new Map(); // A simple in-memory storage for query status and results
 
 const checkPartnerNetworkIn = partner => {
