@@ -428,9 +428,10 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
     const { action, draw, start, length, order, queryId } = JSON.parse(event.body);
+    const partner = await main.authenticateUser(event);
 
     if (action === 'initialize') {
-      return initializeQuery({ draw, start, length, order });
+      return initializeQuery({ draw, start, length, order, partner });
     } else if (action === 'poll') {
       return checkQueryStatus(queryId);
     } else if (action === 'fetchResults') {
@@ -440,8 +441,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     }
   };
 
-  const initializeQuery = async ({ draw, start, length, order }) => {
-    const partner = await main.authenticateUser(event);
+  const initializeQuery = async ({ draw, start, length, order, partner }) => {
 
     // Ensure numeric values for LIMIT and OFFSET
     const limit = parseInt(length, 10) || 10;
