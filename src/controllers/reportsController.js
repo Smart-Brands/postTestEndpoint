@@ -503,20 +503,20 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     queries.set(newQueryId, { status: 'running', data: null });
     console.log("BEFORE CLIENT QUERY SET: ", queries)
 
-    client.query(query, queryParams, (err, res) => {
-      console.log("IN CLIENT QUERY")
-      if (err) {
-        queries.set(newQueryId, { status: 'error', error: err });
-        console.log("IN IF (ERR) CONDITION OF CLIENT QUERY: ", queries)
-      } else {
+    try {
+      await client.query(query, queryParams, (err, res) => {
+        console.log("IN CLIENT QUERY")
         queries.set(newQueryId, { status: 'completed', data: res.rows });
-        console.log("IN ELSE CONDITION OF CLIENT QUERY: ", queries)
-      }
+      });
+    } catch (err) {
+      queries.set(newQueryId, { status: 'error', error: err });
+      console.log("IN IF (ERR) CONDITION OF CLIENT QUERY: ", queries)
+    } finally {
       console.log("BEFORE CLIENT END: ", queries)
-      client.end();
-    });
-    console.log("AFTERE CONDITIONAL; BEFORE RETURN")
+      await client.end();
+    }
 
+    console.log("AFTERE CONDITIONAL; BEFORE RETURN")
     return main.responseWrapper({ queryId: newQueryId });
   };
 
