@@ -432,7 +432,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("PARAMS: ", JSON.parse(event.body))
 
     if (action === 'initialize') {
-      console.log("INIT")
+      console.log("INIT ----")
       return initializeQuery(draw, start, length, order, partner);
     } else if (action === 'poll') {
       console.log("POLL: ", queryId)
@@ -501,12 +501,14 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     const newQueryId = uuidv4();
 
     queries.set(newQueryId, { status: 'running', data: null });
+    console.log("BEFORE CLIENT QUERY SET: ", queries)
 
     client.query(query, queryParams, (err, res) => {
       if (err) {
         queries.set(newQueryId, { status: 'error', error: err });
       } else {
         queries.set(newQueryId, { status: 'completed', data: res.rows });
+        console.log("IN ELSE CONDITION OF CLIENT QUERY: ", queries)
       }
       console.log("BEFORE CLIENT END: ", queries)
       client.end();
