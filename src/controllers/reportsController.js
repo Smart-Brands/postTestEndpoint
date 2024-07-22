@@ -532,7 +532,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
         data: res.rows,
       };
 
-      queries.set(newQueryId, { status: 'completed', data: res.rows });
+      queries.set(newQueryId, response);
     } catch (err) {
       queries.set(newQueryId, { status: 'error', error: err });
     } finally {
