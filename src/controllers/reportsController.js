@@ -504,6 +504,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("BEFORE CLIENT QUERY SET: ", queries)
 
     client.query(query, queryParams, (err, res) => {
+      console.log("IN CLIENT QUERY")
       if (err) {
         queries.set(newQueryId, { status: 'error', error: err });
         console.log("IN IF (ERR) CONDITION OF CLIENT QUERY: ", queries)
@@ -514,6 +515,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       console.log("BEFORE CLIENT END: ", queries)
       client.end();
     });
+    console.log("AFTERE CONDITIONAL; BEFORE RETURN")
 
     return main.responseWrapper({ queryId: newQueryId });
   };
