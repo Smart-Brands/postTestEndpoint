@@ -506,6 +506,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       }
       client.end();
     });
+    return main.responseWrapper({ queries });
 
     return main.responseWrapper({ queryId: newQueryId, query: query, queries: queries });
   };
