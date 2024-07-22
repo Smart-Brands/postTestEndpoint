@@ -516,8 +516,10 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     if (!queries.has(queryId)) {
       return main.responseWrapper({ status: 'error', error: 'Invalid query ID' });
     }
+    console.log("queries: ", queries)
 
     const queryStatus = queries.get(queryId);
+    console.log("queryStatus: ", queryStatus)
 
     return main.responseWrapper(queryStatus);
   };
