@@ -504,10 +504,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("BEFORE CLIENT QUERY SET: ", queries)
 
     try {
-      await client.query(query, queryParams, (err, res) => {
-        console.log("IN CLIENT QUERY")
-        queries.set(newQueryId, { status: 'completed', data: res.rows });
-      });
+      const res = await client.query(query, queryParams);
+      console.log("IN CLIENT QUERY");
+      queries.set(newQueryId, { status: 'completed', data: res.rows });
     } catch (err) {
       queries.set(newQueryId, { status: 'error', error: err });
       console.log("IN IF (ERR) CONDITION OF CLIENT QUERY: ", queries)
