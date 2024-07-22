@@ -505,9 +505,10 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
         queries.set(newQueryId, { status: 'completed', data: res.rows });
       }
       client.end();
+      return main.responseWrapper({ queryId: newQueryId });
     });
-    console.log("PARAMS: ", draw, " | ", start, " | ", length, " | ", order, " | ", partner, " || newQueryId: ", newQueryId, " || queries: ", queries)
-    return main.responseWrapper({ queryId: newQueryId, query: query, queries: queries });
+
+    return main.responseWrapper({ queryId: newQueryId });
   };
 
   const checkQueryStatus = async queryId => {
