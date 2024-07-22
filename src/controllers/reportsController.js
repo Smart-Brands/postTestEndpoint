@@ -431,10 +431,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     const partner = await main.authenticateUser(event);
 
     if (action === 'initialize') {
+      console.log("INIT")
       return initializeQuery(draw, start, length, order, partner);
     } else if (action === 'poll') {
+      console.log("POLL: ", queryId)
       return checkQueryStatus(queryId);
     } else if (action === 'fetchResults') {
+      console.log("FETCH: ", queryId)
       return getQueryResults(queryId);
     } else {
       return main.responseWrapper({ status: 'error', error: 'Invalid action' });
