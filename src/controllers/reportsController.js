@@ -506,6 +506,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     client.query(query, queryParams, (err, res) => {
       if (err) {
         queries.set(newQueryId, { status: 'error', error: err });
+        console.log("IN IF (ERR) CONDITION OF CLIENT QUERY: ", queries)
       } else {
         queries.set(newQueryId, { status: 'completed', data: res.rows });
         console.log("IN ELSE CONDITION OF CLIENT QUERY: ", queries)
