@@ -431,7 +431,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     const partner = await main.authenticateUser(event);
 
     if (action === 'initialize') {
-      return initializeQuery({ draw, start, length, order, partner });
+      return initializeQuery(draw, start, length, order, partner);
     } else if (action === 'poll') {
       return checkQueryStatus(queryId);
     } else if (action === 'fetchResults') {
@@ -441,7 +441,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     }
   };
 
-  const initializeQuery = async ({ draw, start, length, order, partner }) => {
+  const initializeQuery = async (draw, start, length, order, partner) => {
 
     // Ensure numeric values for LIMIT and OFFSET
     const limit = parseInt(length, 10) || 10;
@@ -506,8 +506,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
       }
       client.end();
     });
-    return main.responseWrapper({ queries });
-
+    console.log("PARAMS: ", draw, " | ", start, " | ", length, " | ", order, " | ", partner, " || newQueryId: ", newQueryId, " || queries: ", queries)
     return main.responseWrapper({ queryId: newQueryId, query: query, queries: queries });
   };
 
