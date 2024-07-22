@@ -429,6 +429,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 module.exports.postOutgoingNotificationsForPartner = async event => {
     const { action, draw, start, length, order, queryId } = JSON.parse(event.body);
     const partner = await main.authenticateUser(event);
+    console.log("PARAMS: ", JSON.parse(event.body))
 
     if (action === 'initialize') {
       console.log("INIT")
