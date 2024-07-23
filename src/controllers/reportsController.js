@@ -1,8 +1,5 @@
 'use strict';
 const main = require('../main');
-const { Client } = require('pg');
-const { v4: uuidv4 } = require('uuid');
-
 const redshift = require('../redshift');
 const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 const uuid = require('uuid');
@@ -12,16 +9,6 @@ const sftp = require('./sftp');
 const { log } = require('console');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { RedshiftDataClient, ExecuteStatementCommand, DescribeStatementCommand, GetStatementResultCommand } = require('@aws-sdk/client-redshift-data');
-
-const REDSHIFT_CONFIG = {
-  user: process.env.REDSHIFT_USER,
-  host: process.env.REDSHIFT_HOST,
-  database: process.env.REDSHIFT_DATABASE,
-  password: process.env.REDSHIFT_DB_PASSWORD,
-  port: process.env.REDSHIFT_PORT,
-}
-
-const queries = new Map(); // A simple in-memory storage for query status and results
 
 const checkPartnerNetworkIn = partner => {
   if (!partner.network_in) {
@@ -427,233 +414,196 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-    const { action, draw, start, length, order, queryId } = JSON.parse(event.body);
-    const partner = await main.authenticateUser(event);
-    console.log("PARAMS: ", JSON.parse(event.body))
+  const partner = await main.authenticateUser(event);
 
-    if (action === 'initialize') {
-      console.log("INIT ----")
-      return initializeQuery(draw, start, length, order, partner);
-    } else if (action === 'poll') {
-      console.log("POLL: ", queryId)
-      return checkQueryStatus(queryId);
-    } else if (action === 'fetchResults') {
-      console.log("FETCH: ", queryId)
-      return getQueryResults(queryId);
-    } else {
-      return main.responseWrapper({ status: 'error', error: 'Invalid action' });
-    }
-  };
-
-  const initializeQuery = async (draw, start, length, order, partner) => {
+  const datatables = event.queryStringParameters?.datatables;
+  if (datatables === 'yes') {
+    const { draw, start, length, search, order } = JSON.parse(event.body);
 
     // Ensure numeric values for LIMIT and OFFSET
-    const limit = parseInt(length, 10) || 10;
-    const offset = parseInt(start, 10) || 0;
+    const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
+    const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
 
+    // Define columns and column aliases
     const columns = [
-      'email_address',
-      'pixel_id',
-      'pixel_name',
-      'pixel_description',
-      'list_name',
-      'integration_name',
-      'status_code',
-      'response_text',
-      'date_created',
-      'date_sent',
+      'pt.name',
+      'pt.description',
+      'i.name',
+      'pt.status'
     ];
 
+    // Determine sort order and column
     const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-    const sortColumn = columns[sortColumnIndex] || columns[0];
+    const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
     const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
 
+    // Build the base query with sorting and dynamic filtering
     let queryParams = [partner.id];
-    let whereClause = '';
+    let whereClause = ' WHERE pt.partner_id = ? AND pt.status NOT IN (2)';
+    const searchValue = search?.value || '';
 
-    let emlField = partner.hash_access ? 'c.email_hash' : 'c.email_address';
+    if (searchValue) {
+      // Apply search filter on a suitable column or multiple columns
+      const searchConditions = columns.map(() => 'pt.name LIKE ? OR pt.description LIKE ? OR i.name LIKE ? OR pt.status LIKE ?').join(' OR ');
+      whereClause += ' AND (' + searchConditions + ')';
+      // Add the search value for each column
+      const searchParams = new Array(columns.length * 4).fill(`%${searchValue}%`); // Apply search term to all columns
+      queryParams = queryParams.concat(searchParams);
+    }
 
-    const query = `SELECT ${emlField}, i.name AS integration_name,
-          COALESCE(p.uuid, 'Network') AS uuid,
-          COALESCE(p.pixel_name, 'Network') AS pixel_name,
-          COALESCE(p.description, 'Network') AS pixel_description,
-          COALESCE(l.name, 'Pixel') AS list_name,
-          t.name AS trigger_name, otn.*
-          FROM outgoing_notifications otn
-          INNER JOIN contacts c ON otn.contact_id = c.id
-          LEFT JOIN integrations i ON otn.integration_id = i.id
-          LEFT JOIN pixels p ON otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id AND otn.partner_id = p.partner_id
-          LEFT JOIN partner_lists l ON otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id AND otn.partner_id = l.partner_id
-          LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-          WHERE 1 = 1
-          ${whereClause}
-          AND otn.partner_id = $1
-          AND otn.date_sent > dateadd(day, -30, GETDATE())
-          ORDER BY ${sortColumn} ${sortDirection}
-          LIMIT $2
-          OFFSET $3`;
+    let query = `
+    SELECT SQL_CALC_FOUND_ROWS pt.name, pt.description, i.name AS integration_name, pt.status, pt.id
+    FROM partner_triggers AS pt
+    INNER JOIN integrations AS i ON i.id = pt.integration_id
+    ${whereClause}
+    ORDER BY ${sortColumn} ${sortDirection}
+    LIMIT ? OFFSET ?`;
 
+    // Append LIMIT and OFFSET parameters
     queryParams.push(limit, offset);
 
-    const client = new Client(REDSHIFT_CONFIG);
-    await client.connect();
+    // Prepare the count query with the same where clause
+    let countQuery = `
+    SELECT COUNT(*) AS total
+    FROM partner_triggers AS pt
+    INNER JOIN integrations AS i ON i.id = pt.integration_id
+    ${whereClause}`;
 
-    const newQueryId = uuidv4();
+    // Exclude LIMIT and OFFSET from count query parameters
+    const countParams = queryParams.slice(0, queryParams.length - 2);
 
-    queries.set(newQueryId, { status: 'running', data: null });
+    // Execute the count query
+    const totalResult = await main.sql.query(countQuery, countParams);
+    const totalRecords = parseInt(totalResult[0].total, 10);
 
-    try {
-      const res = await client.query(query, queryParams);
-      queries.set(newQueryId, { status: 'completed', data: res.rows });
-    } catch (err) {
-      queries.set(newQueryId, { status: 'error', error: err });
-    } finally {
-      await client.end();
-    }
+    // Execute the main query
+    const result = await main.sql.query(query, queryParams);
+    const rows = result;
 
-    return main.responseWrapper({ queryId: newQueryId });
-  };
-
-  const checkQueryStatus = async queryId => {
-    if (!queries.has(queryId)) {
-      return main.responseWrapper({ status: 'error', error: 'Invalid query ID' });
-    }
-
-    const queryStatus = queries.get(queryId);
-
-    return main.responseWrapper(queryStatus);
-  };
-
-  const getQueryResults = async queryId => {
-    if (!queries.has(queryId)) {
-      return main.responseWrapper({ status: 'error', error: 'Invalid query ID' });
-    }
-
-    // let countQuery = `SELECT COUNT(*) AS total FROM (select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-    //   from outgoing_notifications otn
-    //   inner join contacts c on otn.contact_id = c.id
-    //   left join integrations i on otn.integration_id = i.id
-    //   left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-    //   left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-    //   left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-    //   WHERE 1 = 1
-    //   ${whereClause}
-    //   AND otn.partner_id = ?
-    //   AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
-
-    // const countParams = queryParams.slice(0, queryParams.length - 2);
-    // const queryStatus = queries.get(queryId);
-    // const totalResult = await main.sql.query(countQuery, countParams);
-    // const totalRecords = parseInt(totalResult[0].total, 10);
-
+    // Construct the response
     const response = {
-      status: 'completed',
       draw: draw,
-      recordsTotal: 100,
-      recordsFiltered: 10,
-      data: queryStatus.data ,
+      recordsTotal: totalRecords,
+      recordsFiltered: totalRecords,
+      data: rows,
     };
 
-    if (queryStatus.status !== 'completed') {
-      return main.responseWrapper({ status: 'error', error: 'Query not completed yet' });
-    }
+    await main.sql.end();
 
     return main.responseWrapper(response);
+  }
+
+  try {
+    const { id } = event.pathParameters;
+    const result = await main.sql.query(
+      `SELECT * FROM partner_triggers WHERE id = ? AND partner_id = ?`,
+      [id, partner.id],
+    );
+
+    await main.sql.end();
+
+    if (!result[0]) {
+      throw new main.HttpError('Could not find Trigger', 404);
+    }
+
+    return main.responseWrapper(result[0]);
+  } catch (e) {
+    console.log(e);
+
+    return main.responseWrapper(e, e.statusCode || 500);
+  }
+
+  // const { draw, start, length, order } = JSON.parse(event.body);
+  // const partner = await main.authenticateUser(event);
+
+  // // Ensure numeric values for LIMIT and OFFSET
+  // const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
+  // const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
+
+
+  // const columns = [
+  //   'email_address',
+  //   'pixel_id',
+  //   'pixel_name',
+  //   'pixel_description',
+  //   'list_name',
+  //   'integration_name',
+  //   'status_code',
+  //   'response_text',
+  //   'date_created',
+  //   'date_sent',
+  // ];
+
+  // // Determine sort order and column
+  // const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
+  // const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+  // const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+
+  // // Build the base query with sorting and dynamic filtering
+  // let queryParams = [partner.id];
+  // let whereClause = '';
+
+  // let emlField = '';
+  // if (partner.hash_access) {
+  //   emlField = 'c.email_hash';
+  // } else {
+  //   emlField = 'c.email_address';
+  // }
+
+  // const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+  //       from outgoing_notifications otn
+  //       inner join contacts c on otn.contact_id = c.id
+  //       left join integrations i on otn.integration_id = i.id
+  //       left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+  //       left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+  //       left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+  //       WHERE 1 = 1
+  //       ${whereClause}
+  //       AND otn.partner_id = ?
+  //       AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
+  //       ORDER BY ${sortColumn} ${sortDirection}
+  //       limit ? offset ?`;
+
+  // // Append LIMIT and OFFSET parameters
+  // queryParams.push(limit, offset);
+
+  // // Prepare the count query with the same where clause
+  // let countQuery = `SELECT COUNT(*) AS total FROM (select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+  //       from outgoing_notifications otn
+  //       inner join contacts c on otn.contact_id = c.id
+  //       left join integrations i on otn.integration_id = i.id
+  //       left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+  //       left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+  //       left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+  //       WHERE 1 = 1
+  //       ${whereClause}
+  //       AND otn.partner_id = ?
+  //       AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
+
+
+  // // Exclude LIMIT and OFFSET from count query parameters
+  // const countParams = queryParams.slice(0, queryParams.length - 2);
+
+  // // Execute the count query
+  // const totalResult = await main.sql.query(countQuery, countParams);
+  // const totalRecords = parseInt(totalResult[0].total, 10);
+
+  // // Execute the main query
+  // const result = await main.sql.query(query, queryParams);
+  // const rows = result;
+
+  // // Construct the response
+  // const response = {
+  //   draw: draw,
+  //   recordsTotal: totalRecords,
+  //   recordsFiltered: totalRecords,
+  //   data: rows,
+  // };
+
+  // await main.sql.end();
+
+  // return main.responseWrapper(response);
 };
-
-
-// module.exports.postOutgoingNotificationsForPartner = async event => {
-//   const { draw, start, length, order } = JSON.parse(event.body);
-//   const partner = await main.authenticateUser(event);
-
-//   // Ensure numeric values for LIMIT and OFFSET
-//   const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
-//   const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
-
-
-//   const columns = [
-//     'email_address',
-//     'pixel_id',
-//     'pixel_name',
-//     'pixel_description',
-//     'list_name',
-//     'integration_name',
-//     'status_code',
-//     'response_text',
-//     'date_created',
-//     'date_sent',
-//   ];
-
-//   // Determine sort order and column
-//   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-//   const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-//   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
-
-//   // Build the base query with sorting and dynamic filtering
-//   let queryParams = [partner.id];
-//   let whereClause = '';
-
-//   let emlField = '';
-//   if (partner.hash_access) {
-//     emlField = 'c.email_hash';
-//   } else {
-//     emlField = 'c.email_address';
-//   }
-
-//   const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-//         from outgoing_notifications otn
-//         inner join contacts c on otn.contact_id = c.id
-//         left join integrations i on otn.integration_id = i.id
-//         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-//         left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-//         left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-//         WHERE 1 = 1
-//         ${whereClause}
-//         AND otn.partner_id = ?
-//         AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
-//         ORDER BY ${sortColumn} ${sortDirection}
-//         limit ? offset ?`;
-
-//   // Append LIMIT and OFFSET parameters
-//   queryParams.push(limit, offset);
-
-//   // Prepare the count query with the same where clause
-//   let countQuery = `SELECT COUNT(*) AS total FROM (select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-//         from outgoing_notifications otn
-//         inner join contacts c on otn.contact_id = c.id
-//         left join integrations i on otn.integration_id = i.id
-//         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-//         left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-//         left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-//         WHERE 1 = 1
-//         ${whereClause}
-//         AND otn.partner_id = ?
-//         AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
-
-
-//   // Exclude LIMIT and OFFSET from count query parameters
-//   const countParams = queryParams.slice(0, queryParams.length - 2);
-
-//   // Execute the count query
-//   const totalResult = await main.sql.query(countQuery, countParams);
-//   const totalRecords = parseInt(totalResult[0].total, 10);
-
-//   // Execute the main query
-//   const result = await main.sql.query(query, queryParams);
-//   const rows = result;
-
-//   // Construct the response
-//   const response = {
-//     draw: draw,
-//     recordsTotal: totalRecords,
-//     recordsFiltered: totalRecords,
-//     data: rows,
-//   };
-
-//   await main.sql.end();
-
-//   return main.responseWrapper(response);
-// };
 
 module.exports.getNotificationsForPartner = async event => {
   console.log(
