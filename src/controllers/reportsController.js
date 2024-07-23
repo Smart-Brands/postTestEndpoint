@@ -414,195 +414,194 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 };
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
-  const partner = await main.authenticateUser(event);
+  //   const partner = await main.authenticateUser(event);
 
-  const datatables = event.queryStringParameters?.datatables;
-  if (datatables === 'yes') {
-    const { draw, start, length, search, order } = JSON.parse(event.body);
+  // const datatables = event.queryStringParameters?.datatables;
+  // if (datatables === 'yes') {
+  //   const { draw, start, length, search, order } = JSON.parse(event.body);
 
-    // Ensure numeric values for LIMIT and OFFSET
-    const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
-    const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
+  //   // Ensure numeric values for LIMIT and OFFSET
+  //   const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
+  //   const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
 
-    // Define columns and column aliases
-    const columns = [
-      'pt.name',
-      'pt.description',
-      'i.name',
-      'pt.status'
-    ];
+  //   // Define columns and column aliases
+  //   const columns = [
+  //     'pt.name',
+  //     'pt.description',
+  //     'i.name',
+  //     'pt.status'
+  //   ];
 
-    // Determine sort order and column
-    const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-    const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-    const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+  //   // Determine sort order and column
+  //   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
+  //   const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+  //   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
 
-    // Build the base query with sorting and dynamic filtering
-    let queryParams = [partner.id];
-    let whereClause = ' WHERE pt.partner_id = ? AND pt.status NOT IN (2)';
-    const searchValue = search?.value || '';
+  //   // Build the base query with sorting and dynamic filtering
+  //   let queryParams = [partner.id];
+  //   let whereClause = ' WHERE pt.partner_id = ? AND pt.status NOT IN (2)';
+  //   const searchValue = search?.value || '';
 
-    if (searchValue) {
-      // Apply search filter on a suitable column or multiple columns
-      const searchConditions = columns.map(() => 'pt.name LIKE ? OR pt.description LIKE ? OR i.name LIKE ? OR pt.status LIKE ?').join(' OR ');
-      whereClause += ' AND (' + searchConditions + ')';
-      // Add the search value for each column
-      const searchParams = new Array(columns.length * 4).fill(`%${searchValue}%`); // Apply search term to all columns
-      queryParams = queryParams.concat(searchParams);
-    }
+  //   if (searchValue) {
+  //     // Apply search filter on a suitable column or multiple columns
+  //     const searchConditions = columns.map(() => 'pt.name LIKE ? OR pt.description LIKE ? OR i.name LIKE ? OR pt.status LIKE ?').join(' OR ');
+  //     whereClause += ' AND (' + searchConditions + ')';
+  //     // Add the search value for each column
+  //     const searchParams = new Array(columns.length * 4).fill(`%${searchValue}%`); // Apply search term to all columns
+  //     queryParams = queryParams.concat(searchParams);
+  //   }
 
-    let query = `
-    SELECT SQL_CALC_FOUND_ROWS pt.name, pt.description, i.name AS integration_name, pt.status, pt.id
-    FROM partner_triggers AS pt
-    INNER JOIN integrations AS i ON i.id = pt.integration_id
-    ${whereClause}
-    ORDER BY ${sortColumn} ${sortDirection}
-    LIMIT ? OFFSET ?`;
+  //   let query = `
+  //   SELECT SQL_CALC_FOUND_ROWS pt.name, pt.description, i.name AS integration_name, pt.status, pt.id
+  //   FROM partner_triggers AS pt
+  //   INNER JOIN integrations AS i ON i.id = pt.integration_id
+  //   ${whereClause}
+  //   ORDER BY ${sortColumn} ${sortDirection}
+  //   LIMIT ? OFFSET ?`;
 
-    // Append LIMIT and OFFSET parameters
-    queryParams.push(limit, offset);
+  //   // Append LIMIT and OFFSET parameters
+  //   queryParams.push(limit, offset);
 
-    // Prepare the count query with the same where clause
-    let countQuery = `
-    SELECT COUNT(*) AS total
-    FROM partner_triggers AS pt
-    INNER JOIN integrations AS i ON i.id = pt.integration_id
-    ${whereClause}`;
+  //   // Prepare the count query with the same where clause
+  //   let countQuery = `
+  //   SELECT COUNT(*) AS total
+  //   FROM partner_triggers AS pt
+  //   INNER JOIN integrations AS i ON i.id = pt.integration_id
+  //   ${whereClause}`;
 
-    // Exclude LIMIT and OFFSET from count query parameters
-    const countParams = queryParams.slice(0, queryParams.length - 2);
+  //   // Exclude LIMIT and OFFSET from count query parameters
+  //   const countParams = queryParams.slice(0, queryParams.length - 2);
 
-    // Execute the count query
-    const totalResult = await main.sql.query(countQuery, countParams);
-    const totalRecords = parseInt(totalResult[0].total, 10);
+  //   // Execute the count query
+  //   const totalResult = await main.sql.query(countQuery, countParams);
+  //   const totalRecords = parseInt(totalResult[0].total, 10);
 
-    // Execute the main query
-    const result = await main.sql.query(query, queryParams);
-    const rows = result;
+  //   // Execute the main query
+  //   const result = await main.sql.query(query, queryParams);
+  //   const rows = result;
 
-    // Construct the response
-    const response = {
-      draw: draw,
-      recordsTotal: totalRecords,
-      recordsFiltered: totalRecords,
-      data: rows,
-    };
+  //   // Construct the response
+  //   const response = {
+  //     draw: draw,
+  //     recordsTotal: totalRecords,
+  //     recordsFiltered: totalRecords,
+  //     data: rows,
+  //   };
 
-    await main.sql.end();
+  //   await main.sql.end();
 
-    return main.responseWrapper(response);
-  }
-
-  try {
-    const { id } = event.pathParameters;
-    const result = await main.sql.query(
-      `SELECT * FROM partner_triggers WHERE id = ? AND partner_id = ?`,
-      [id, partner.id],
-    );
-
-    await main.sql.end();
-
-    if (!result[0]) {
-      throw new main.HttpError('Could not find Trigger', 404);
-    }
-
-    return main.responseWrapper(result[0]);
-  } catch (e) {
-    console.log(e);
-
-    return main.responseWrapper(e, e.statusCode || 500);
-  }
-
-  // const { draw, start, length, order } = JSON.parse(event.body);
-  // const partner = await main.authenticateUser(event);
-
-  // // Ensure numeric values for LIMIT and OFFSET
-  // const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
-  // const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
-
-
-  // const columns = [
-  //   'email_address',
-  //   'pixel_id',
-  //   'pixel_name',
-  //   'pixel_description',
-  //   'list_name',
-  //   'integration_name',
-  //   'status_code',
-  //   'response_text',
-  //   'date_created',
-  //   'date_sent',
-  // ];
-
-  // // Determine sort order and column
-  // const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-  // const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
-  // const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
-
-  // // Build the base query with sorting and dynamic filtering
-  // let queryParams = [partner.id];
-  // let whereClause = '';
-
-  // let emlField = '';
-  // if (partner.hash_access) {
-  //   emlField = 'c.email_hash';
-  // } else {
-  //   emlField = 'c.email_address';
+  //   return main.responseWrapper(response);
   // }
 
-  // const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-  //       from outgoing_notifications otn
-  //       inner join contacts c on otn.contact_id = c.id
-  //       left join integrations i on otn.integration_id = i.id
-  //       left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-  //       left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-  //       left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-  //       WHERE 1 = 1
-  //       ${whereClause}
-  //       AND otn.partner_id = ?
-  //       AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
-  //       ORDER BY ${sortColumn} ${sortDirection}
-  //       limit ? offset ?`;
+  // try {
+  //   const { id } = event.pathParameters;
+  //   const result = await main.sql.query(
+  //     `SELECT * FROM partner_triggers WHERE id = ? AND partner_id = ?`,
+  //     [id, partner.id],
+  //   );
 
-  // // Append LIMIT and OFFSET parameters
-  // queryParams.push(limit, offset);
+  //   await main.sql.end();
 
-  // // Prepare the count query with the same where clause
-  // let countQuery = `SELECT COUNT(*) AS total FROM (select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-  //       from outgoing_notifications otn
-  //       inner join contacts c on otn.contact_id = c.id
-  //       left join integrations i on otn.integration_id = i.id
-  //       left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-  //       left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-  //       left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-  //       WHERE 1 = 1
-  //       ${whereClause}
-  //       AND otn.partner_id = ?
-  //       AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
+  //   if (!result[0]) {
+  //     throw new main.HttpError('Could not find Trigger', 404);
+  //   }
+
+  //   return main.responseWrapper(result[0]);
+  // } catch (e) {
+  //   console.log(e);
+
+  //   return main.responseWrapper(e, e.statusCode || 500);
+  // }
+
+  const { draw, start, length, order } = JSON.parse(event.body);
+  const partner = await main.authenticateUser(event);
+
+  // Ensure numeric values for LIMIT and OFFSET
+  const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
+  const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
 
 
-  // // Exclude LIMIT and OFFSET from count query parameters
-  // const countParams = queryParams.slice(0, queryParams.length - 2);
+  const columns = [
+    'email_address',
+    'pixel_id',
+    'pixel_name',
+    'pixel_description',
+    'list_name',
+    'integration_name',
+    'status_code',
+    'response_text',
+    'date_created',
+    'date_sent',
+  ];
 
-  // // Execute the count query
-  // const totalResult = await main.sql.query(countQuery, countParams);
-  // const totalRecords = parseInt(totalResult[0].total, 10);
+  // Determine sort order and column
+  const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
+  const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+  const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
 
-  // // Execute the main query
-  // const result = await main.sql.query(query, queryParams);
-  // const rows = result;
+  // Build the base query with sorting and dynamic filtering
+  let queryParams = [partner.id];
+  let whereClause = '';
 
-  // // Construct the response
-  // const response = {
-  //   draw: draw,
-  //   recordsTotal: totalRecords,
-  //   recordsFiltered: totalRecords,
-  //   data: rows,
-  // };
+  let emlField = '';
+  if (partner.hash_access) {
+    emlField = 'c.email_hash';
+  } else {
+    emlField = 'c.email_address';
+  }
 
-  // await main.sql.end();
+  const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+        from outgoing_notifications otn
+        inner join contacts c on otn.contact_id = c.id
+        left join integrations i on otn.integration_id = i.id
+        left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+        left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+        left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+        WHERE 1 = 1
+        ${whereClause}
+        AND otn.partner_id = ?
+        AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ORDER BY ${sortColumn} ${sortDirection}
+        limit ? offset ?`;
 
-  // return main.responseWrapper(response);
+  // Append LIMIT and OFFSET parameters
+  queryParams.push(limit, offset);
+
+  // Prepare the count query with the same where clause
+  let countQuery = `SELECT COUNT(*) AS total FROM (select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+        from outgoing_notifications otn
+        inner join contacts c on otn.contact_id = c.id
+        left join integrations i on otn.integration_id = i.id
+        left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+        left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+        left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+        WHERE 1 = 1
+        ${whereClause}
+        AND otn.partner_id = ?
+        AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
+
+
+  // Exclude LIMIT and OFFSET from count query parameters
+  const countParams = queryParams.slice(0, queryParams.length - 2);
+
+  // Execute the count query
+  const totalResult = await main.sql.query(countQuery, countParams);
+  const totalRecords = parseInt(totalResult[0].total, 10);
+
+  // Execute the main query
+  const result = await main.sql.query(query, queryParams);
+
+  // Construct the response
+  const response = {
+    draw: draw,
+    recordsTotal: totalRecords,
+    recordsFiltered: totalRecords,
+    data: result,
+  };
+
+  await main.sql.end();
+
+  return main.responseWrapper(response);
 };
 
 module.exports.getNotificationsForPartner = async event => {
