@@ -606,9 +606,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               LEFT JOIN pixels p ON otn.pixel_id = p.id
               LEFT JOIN partner_lists l ON otn.partner_list_id = l.id
               LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-              WHERE 1 = 1
-              ${whereClause}
-              AND otn.partner_id = ?
+              WHERE t.partner_id = ?
+              AND pt.status NOT IN (2)
               AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
 
 
@@ -617,7 +616,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const totalResult = await main.sql.query(countQuery, queryParams);
   const totalRecords = parseInt(totalResult[0].total, 10);
 
-  const result = await main.sql.query(query, queryParams);
+  const result = await main.sql.query(query, partner.id);
   console.log(">>> RESULT: ", result)
 
   const response = {
