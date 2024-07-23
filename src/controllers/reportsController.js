@@ -587,7 +587,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                     FROM partner_triggers AS pt
                     INNER JOIN integrations AS i ON i.id = pt.integration_id
                     WHERE pt.partner_id = ?
-                    AND pt.status NOT IN (2);`;
+                    AND pt.status NOT IN (2)`;
 
 
   // const countParams = queryParams.slice(0, queryParams.length - 2);
