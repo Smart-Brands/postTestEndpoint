@@ -594,6 +594,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const totalResult = await main.sql.query(countQuery, [partner.id]);
   const totalRecords = parseInt(totalResult[0].total, 10);
+  console.log("??? CHECK WHERE ERROR HITS ??? ", totalResult)
+
 
   const result = await main.sql.query(query, partner.id);
   console.log(">>> RESULT: ", result)
