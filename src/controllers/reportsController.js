@@ -577,6 +577,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                       otn.pixel_id,
                       otn.partner_id,
                       otn.partner_list_id,
+                      otn.status_code,
+                      otn.response_text,
+                      otn.date_created,
                       otn.date_sent
                   FROM recent_outgoing_notifications otn
                   INNER JOIN contacts c ON otn.contact_id = c.id
