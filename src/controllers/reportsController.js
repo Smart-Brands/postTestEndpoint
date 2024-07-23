@@ -613,9 +613,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               LIMIT ? OFFSET ?) AS a`;
 
 
-  const countParams = queryParams.slice(0, queryParams.length - 2);
+  // const countParams = queryParams.slice(0, queryParams.length - 2);
 
-  const totalResult = await main.sql.query(countQuery, countParams);
+  const totalResult = await main.sql.query(countQuery, queryParams);
   const totalRecords = parseInt(totalResult[0].total, 10);
 
   const result = await main.sql.query(query, queryParams);
