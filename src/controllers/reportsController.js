@@ -550,19 +550,45 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     emlField = 'c.email_address';
   }
 
-  const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-        from outgoing_notifications otn
-        inner join contacts c on otn.contact_id = c.id
-        left join integrations i on otn.integration_id = i.id
-        left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
-        left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
-        left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
-        WHERE 1 = 1
-        ${whereClause}
-        AND otn.partner_id = ?
-        AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
-        ORDER BY ${sortColumn} ${sortDirection}
-        limit ? offset ?`;
+  // const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
+  //       from outgoing_notifications otn
+  //       inner join contacts c on otn.contact_id = c.id
+  //       left join integrations i on otn.integration_id = i.id
+  //       left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
+  //       left join partner_lists l on otn.partner_list_id IS NOT NULL AND otn.partner_list_id = l.id and otn.partner_id = l.partner_id
+  //       left join partner_triggers t on otn.integration_id = t.integration_id and l.trigger_id = t.id
+  //       WHERE 1 = 1
+  //       ${whereClause}
+  //       AND otn.partner_id = ?
+  //       AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
+  //       ORDER BY ${sortColumn} ${sortDirection}
+  //       limit ? offset ?`;
+
+    const query =`SELECT
+                      c.email_address,
+                      i.name AS integration_name,
+                      p.uuid AS uuid,
+                      p.pixel_name AS pixel_name,
+                      p.description AS pixel_description,
+                      l.name AS list_name,
+                      t.name AS trigger_name,
+                      otn.contact_id,
+                      otn.integration_id,
+                      otn.pixel_id,
+                      otn.partner_id,
+                      otn.partner_list_id,
+                      otn.date_sent
+                  FROM recent_outgoing_notifications otn
+                  INNER JOIN contacts c ON otn.contact_id = c.id
+                  LEFT JOIN integrations i ON otn.integration_id = i.id
+                  LEFT JOIN pixels p ON otn.pixel_id = p.id
+                  LEFT JOIN partner_lists l ON otn.partner_list_id = l.id
+                  LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+                  WHERE 1 = 1
+                  ${whereClause}
+                  AND otn.partner_id = ?
+                  AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
+                  LIMIT ? OFFSET ?`;
 
   // Append LIMIT and OFFSET parameters
   queryParams.push(limit, offset);
