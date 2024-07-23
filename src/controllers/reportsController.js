@@ -515,7 +515,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const { draw, start, length, order } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
-
+  console.log("=== EVENT.BODY: ", draw, start, length, order )
   // Ensure numeric values for LIMIT and OFFSET
   const limit = parseInt(length, 10) || 10; // default limit to 10 if not provided
   const offset = parseInt(start, 10) || 0; // default offset to 0 if not provided
@@ -551,7 +551,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   }
 
   const query = `select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
-        from recent_outgoing_notifications otn
+        from outgoing_notifications otn
         inner join contacts c on otn.contact_id = c.id
         left join integrations i on otn.integration_id = i.id
         left join pixels p on otn.pixel_id IS NOT NULL AND otn.pixel_id = p.id and otn.partner_id = p.partner_id
@@ -566,7 +566,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   // Append LIMIT and OFFSET parameters
   queryParams.push(limit, offset);
-
+  console.log("+++ CHECKS: Query Params - ", queryParams, " | Query - ", query)
   // Prepare the count query with the same where clause
   // let countQuery = `SELECT COUNT(*) AS total FROM (select ${emlField}, i.name as integration_name, ifnull(p.uuid, 'Network') as uuid, ifnull(p.pixel_name, 'Network') as pixel_name, ifnull(p.description, 'Network') as pixel_description, ifnull(l.name, 'Pixel') as list_name, t.name as trigger_name, otn.*
   //       from outgoing_notifications otn
@@ -591,7 +591,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   // Execute the main query`
   const result = await main.sql.query(query, queryParams);
-
+  console.log(">>> RESULT: ", result)
   // Construct the response
   const response = {
     draw: draw,
@@ -599,6 +599,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     recordsFiltered: totalRecords,
     data: result,
   };
+  console.log("*** RESPONSE: ", response)
 
   await main.sql.end();
 
