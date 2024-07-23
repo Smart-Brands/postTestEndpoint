@@ -609,8 +609,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               WHERE 1 = 1
               ${whereClause}
               AND otn.partner_id = ?
-              AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
-              LIMIT ? OFFSET ?) AS a`;
+              AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
 
 
   // const countParams = queryParams.slice(0, queryParams.length - 2);
