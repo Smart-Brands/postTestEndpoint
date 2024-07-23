@@ -582,7 +582,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
 
   // Exclude LIMIT and OFFSET from count query parameters
-  const countParams = queryParams.slice(0, queryParams.length - 2);
+  // const countParams = queryParams.slice(0, queryParams.length - 2);
 
   // Execute the count query
   // const totalResult = await main.sql.query(countQuery, countParams);
