@@ -583,37 +583,16 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   queryParams.push(limit, offset);
   console.log("+++ CHECKS: Query Params - ", queryParams, " | Query - ", query)
   // Prepare the count query with the same where clause
-  let countQuery = `SELECT COUNT(*) AS total FROM (SELECT
-                  c.email_address,
-                  i.name AS integration_name,
-                  p.uuid AS uuid,
-                  p.pixel_name AS pixel_name,
-                  p.description AS pixel_description,
-                  l.name AS list_name,
-                  t.name AS trigger_name,
-                  otn.contact_id,
-                  otn.integration_id,
-                  otn.pixel_id,
-                  otn.partner_id,
-                  otn.partner_list_id,
-                  otn.status_code,
-                  otn.response_text,
-                  otn.date_created,
-                  otn.date_sent
-              FROM recent_outgoing_notifications otn
-              INNER JOIN contacts c ON otn.contact_id = c.id
-              LEFT JOIN integrations i ON otn.integration_id = i.id
-              LEFT JOIN pixels p ON otn.pixel_id = p.id
-              LEFT JOIN partner_lists l ON otn.partner_list_id = l.id
-              LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-              WHERE t.partner_id = ?
-              AND pt.status NOT IN (2)
-              AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)) AS a`;
+  let countQuery = `SELECT COUNT(*) AS total
+                    FROM partner_triggers AS pt
+                    INNER JOIN integrations AS i ON i.id = pt.integration_id
+                    WHERE pt.partner_id = ?
+                    AND pt.status NOT IN (2);`;
 
 
   // const countParams = queryParams.slice(0, queryParams.length - 2);
 
-  const totalResult = await main.sql.query(countQuery, queryParams);
+  const totalResult = await main.sql.query(countQuery, [partner.id]);
   const totalRecords = parseInt(totalResult[0].total, 10);
 
   const result = await main.sql.query(query, partner.id);
