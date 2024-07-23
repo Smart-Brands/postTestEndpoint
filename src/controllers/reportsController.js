@@ -579,10 +579,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)
               LIMIT ? OFFSET ?`;
 
-  // Append LIMIT and OFFSET parameters
   queryParams.push(limit, offset);
-  console.log("+++ CHECKS: Query Params - ", queryParams, " | Query - ", query)
-  // Prepare the count query with the same where clause
+
   let countQuery = `SELECT COUNT(*) AS total
                     FROM partner_triggers AS pt
                     INNER JOIN integrations AS i ON i.id = pt.integration_id
@@ -594,10 +592,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const totalResult = await main.sql.query(countQuery, [partner.id]);
   const totalRecords = parseInt(totalResult[0].total, 10);
-  console.log("??? CHECK WHERE ERROR HITS ??? ", totalResult)
 
-
-  const result = await main.sql.query(query, partner.id);
+  const result = await main.sql.query(query, queryParams);
   console.log(">>> RESULT: ", result)
 
   const response = {
