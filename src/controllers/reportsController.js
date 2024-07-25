@@ -433,6 +433,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'date_sent',
   ];
 
+  console.log("QUERY PARAMS: ", draw, start, length, order, columns, search, dateStart, dateEnd)
+
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
   const sortColumn = columnsMap[sortColumnIndex] || columnsMap[0];
   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
@@ -455,6 +457,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     const searchValue = `%${search.value}%`;
     queryParams.push(searchValue, searchValue, searchValue, searchValue);
   }
+
+  console.log("QUERY PARAMS ARR: ", queryParams)
 
   const query = `SELECT
                    c.email_address,
@@ -486,10 +490,14 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                       WHERE otn.partner_id = ?
                       ${whereClause}`;
 
+  console.log("QUERY: ", query)
+  console.log("COUNT QUERY: ", countQuery)
+
   const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
   const totalRecords = parseInt(totalResult[0].total, 10);
 
   const result = await main.sql.query(query, queryParams);
+  console.log("RESULT: ", result)
 
   const response = {
     draw: parseInt(draw, 10),
@@ -497,6 +505,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     recordsFiltered: totalRecords,
     data: result,
   };
+
+  console.log("RESPONSE: ", response)
 
   await main.sql.end();
   return main.responseWrapper(response);
