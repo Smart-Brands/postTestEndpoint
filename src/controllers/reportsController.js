@@ -505,10 +505,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   console.log("QUERY PARAMS ARR: ", queryParams)
 
   const countQuery = `SELECT COUNT(*) AS total
-                    FROM partner_triggers AS pt
-                    INNER JOIN integrations AS i ON i.id = pt.integration_id
-                    WHERE pt.partner_id = ?
-                    AND pt.status != 2`;
+                      FROM recent_outgoing_notifications otn
+                      WHERE otn.partner_id = ?
+                      ${whereClause}`
 
   console.log("QUERY: ", query)
   console.log("COUNT QUERY: ", countQuery)
