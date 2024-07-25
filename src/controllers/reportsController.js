@@ -490,8 +490,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               LEFT JOIN partner_lists l ON otn.partner_list_id = l.id
               LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
               WHERE 1 = 1
-              ${whereClause}
               AND otn.partner_id = ?
+              ${whereClause}
               LIMIT ? OFFSET ?`;
 
   queryParams.push(limit, offset);
