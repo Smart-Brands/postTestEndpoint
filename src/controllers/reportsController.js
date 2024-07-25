@@ -458,8 +458,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     queryParams.push(searchValue, searchValue, searchValue, searchValue);
   }
 
-  console.log("QUERY PARAMS ARR: ", queryParams)
-
   const query = `SELECT
                    c.email_address,
                    i.name AS integration_name,
@@ -480,10 +478,10 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                  LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
                  WHERE otn.partner_id = ?
                  ${whereClause}
-                 ORDER BY ${sortColumn} ${sortDirection}
                  LIMIT ? OFFSET ?`;
 
   queryParams.push(limit, offset);
+  console.log("QUERY PARAMS ARR: ", queryParams)
 
   const countQuery = `SELECT COUNT(*) AS total
                       FROM recent_outgoing_notifications otn
