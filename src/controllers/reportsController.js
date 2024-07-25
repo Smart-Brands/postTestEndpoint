@@ -466,8 +466,15 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   console.log(">>> QUERY PARAMS: ", queryParams)
 
+  let emlField = '';
+  if (partner.hash_access) {
+    emlField = 'c.email_hash';
+  } else {
+    emlField = 'c.email_address';
+  }
+
   const query = `SELECT
-                  c.email_address,
+                  ${emlField},
                   i.name AS integration_name,
                   p.uuid AS uuid,
                   p.pixel_name AS pixel_name,
@@ -498,9 +505,11 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   console.log("QUERY PARAMS ARR: ", queryParams)
 
   const countQuery = `SELECT COUNT(*) AS total
-                      FROM recent_outgoing_notifications otn
-                      WHERE otn.partner_id = ?
-                      ${whereClause}`;
+                    FROM partner_triggers AS pt
+                    INNER JOIN integrations AS i ON i.id = pt.integration_id
+                    WHERE pt.partner_id = ?
+                    AND pt.status != 2
+                    ${whereClause}`;
 
   console.log("QUERY: ", query)
   console.log("COUNT QUERY: ", countQuery)
