@@ -509,6 +509,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const totalRecords = parseInt(totalResult[0].total, 10);
 
   const result = await main.sql.query(query, queryParams);
+  console.log("USED: ", query, queryParams)
+
   console.log("RESULT: ", result)
 
   const response = {
