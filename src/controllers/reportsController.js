@@ -443,11 +443,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   let whereClause = '';
 
   if (dateStart) {
+    console.log(">>> START: ", dateStart)
     whereClause += ' AND otn.date_sent >= ?';
     queryParams.push(dateStart);
   }
 
   if (dateEnd) {
+    console.log(">>> END: ", dateEnd)
     whereClause += ' AND otn.date_sent <= ?';
     queryParams.push(dateEnd);
   }
@@ -457,6 +459,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     const searchValue = `%${search.value}%`;
     queryParams.push(searchValue, searchValue, searchValue, searchValue);
   }
+
+  console.log(">>> QUERY PARAMS: ", queryParams)
 
   const query = `SELECT
                    c.email_address,
