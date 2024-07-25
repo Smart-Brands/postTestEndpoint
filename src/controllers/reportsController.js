@@ -445,13 +445,17 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   if (dateStart) {
     console.log(">>> START: ", dateStart)
     whereClause += ' AND otn.date_sent >= ?';
-    queryParams.push(dateStart);
+    queryParams.push(`${dateStart} 00:00:00`);
   }
 
   if (dateEnd) {
     console.log(">>> END: ", dateEnd)
     whereClause += ' AND otn.date_sent <= ?';
-    queryParams.push(dateEnd);
+    queryParams.push(`${dateEnd} 00:00:00`);
+  }
+
+  if(!dateStart && !dateEnd) {
+    whereClause+= "AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)"
   }
 
   if (search && search.value) {
@@ -463,26 +467,32 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   console.log(">>> QUERY PARAMS: ", queryParams)
 
   const query = `SELECT
-                   c.email_address,
-                   i.name AS integration_name,
-                   p.uuid AS uuid,
-                   p.pixel_name AS pixel_name,
-                   p.description AS pixel_description,
-                   l.name AS list_name,
-                   t.name AS trigger_name,
-                   otn.status_code,
-                   otn.response_text,
-                   otn.date_created,
-                   otn.date_sent
-                 FROM recent_outgoing_notifications otn
-                 INNER JOIN contacts c ON otn.contact_id = c.id
-                 LEFT JOIN integrations i ON otn.integration_id = i.id
-                 LEFT JOIN pixels p ON otn.pixel_id = p.id
-                 LEFT JOIN partner_lists l ON otn.partner_list_id = l.id
-                 LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-                 WHERE otn.partner_id = ?
-                 ${whereClause}
-                 LIMIT ? OFFSET ?`;
+                  c.email_address,
+                  i.name AS integration_name,
+                  p.uuid AS uuid,
+                  p.pixel_name AS pixel_name,
+                  p.description AS pixel_description,
+                  l.name AS list_name,
+                  t.name AS trigger_name,
+                  otn.contact_id,
+                  otn.integration_id,
+                  otn.pixel_id,
+                  otn.partner_id,
+                  otn.partner_list_id,
+                  otn.status_code,
+                  otn.response_text,
+                  otn.date_created,
+                  otn.date_sent
+              FROM recent_outgoing_notifications otn
+              INNER JOIN contacts c ON otn.contact_id = c.id
+              LEFT JOIN integrations i ON otn.integration_id = i.id
+              LEFT JOIN pixels p ON otn.pixel_id = p.id
+              LEFT JOIN partner_lists l ON otn.partner_list_id = l.id
+              LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
+              WHERE 1 = 1
+              ${whereClause}
+              AND otn.partner_id = ?
+              LIMIT ? OFFSET ?`;
 
   queryParams.push(limit, offset);
   console.log("QUERY PARAMS ARR: ", queryParams)
