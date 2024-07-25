@@ -513,7 +513,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   //   return main.responseWrapper(e, e.statusCode || 500);
   // }
 
-  const { draw, start, length, order } = JSON.parse(event.body);
+  const { draw, start, length, order, dateStart, dateEnd } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
   console.log("=== EVENT.BODY: ", draw, start, length, order )
   // Ensure numeric values for LIMIT and OFFSET
@@ -534,12 +534,10 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'date_sent',
   ];
 
-  // Determine sort order and column
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-  const sortColumn = columns[sortColumnIndex] || columns[0]; // Use first column as default
+  const sortColumn = columns[sortColumnIndex] || columns[0];
   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
 
-  // Build the base query with sorting and dynamic filtering
   let queryParams = [partner.id];
   let whereClause = '';
 
@@ -580,6 +578,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               LIMIT ? OFFSET ?`;
 
   queryParams.push(limit, offset);
+  console.log("QUERY: ", query);
 
   let countQuery = `SELECT COUNT(*) AS total
                     FROM partner_triggers AS pt
