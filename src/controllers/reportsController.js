@@ -461,9 +461,19 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   if (search && search.value) {
     console.log(">>> SEARCH: ", search)
-    whereClause += ' AND (c.email_address LIKE ? OR p.pixel_name LIKE ? OR l.name LIKE ? OR i.name LIKE ?)';
+    whereClause += ` AND (${emlField} LIKE ?
+                    OR p.pixel_name LIKE ?
+                    OR l.name LIKE ?
+                    OR i.name LIKE ?
+                    OR otn.status_code LIKE ?
+                    OR otn.contact_id LIKE ?
+                    OR otn.integration_id LIKE ?
+                    OR otn.pixel_id LIKE ?
+                    OR otn.partner_id LIKE ?
+                    OR otn.partner_list_id LIKE ?
+                    )`;
     const searchValue = `%${search.value}%`;
-    queryParams.push(searchValue, searchValue, searchValue, searchValue);
+    queryParams.push(searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue);
   }
 
   console.log(">>> QUERY PARAMS: ", queryParams)
