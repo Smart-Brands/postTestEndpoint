@@ -459,6 +459,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     whereClause+= "AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)"
   }
 
+  let emlField = '';
+  if (partner.hash_access) {
+    emlField = 'c.email_hash';
+  } else {
+    emlField = 'c.email_address';
+  }
+
   if (search && search.value) {
     console.log(">>> SEARCH: ", search)
     whereClause += ` AND (${emlField} LIKE ?
@@ -477,13 +484,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   }
 
   console.log(">>> QUERY PARAMS: ", queryParams)
-
-  let emlField = '';
-  if (partner.hash_access) {
-    emlField = 'c.email_hash';
-  } else {
-    emlField = 'c.email_address';
-  }
 
   const query = `SELECT
                   ${emlField} AS email_address,
