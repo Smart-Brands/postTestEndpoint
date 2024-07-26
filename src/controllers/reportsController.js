@@ -519,8 +519,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const countQuery = `SELECT COUNT(*) AS total
                       FROM recent_outgoing_notifications otn
-                      WHERE otn.partner_id = ?
-                      ${whereClause}`
+                      WHERE otn.partner_id = ?`
 
   console.log("QUERY: ", query)
   console.log("COUNT QUERY: ", countQuery)
