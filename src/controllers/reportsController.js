@@ -465,7 +465,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   } else {
     emlField = 'c.email_address';
   }
-  
+
   let innerJoins = '';
 
   if (search && search.value) {
@@ -474,7 +474,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                     OR p.pixel_name LIKE ?
                     OR l.name LIKE ?
                     OR i.name LIKE ?
-                    OR otn.status_code = ?
+                    OR otn.status_code LIKE ?
                     OR otn.contact_id = ?
                     OR otn.integration_id = ?
                     OR otn.pixel_id = ?
