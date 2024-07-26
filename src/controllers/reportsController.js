@@ -465,6 +465,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   } else {
     emlField = 'c.email_address';
   }
+  
+  let innerJoins = '';
 
   if (search && search.value) {
     console.log(">>> SEARCH: ", search)
@@ -480,6 +482,11 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                     OR otn.partner_list_id = ?
                     )`;
     const searchValue = `%${search.value}%`;
+    innerJoins = `LEFT JOIN contacts c ON otn.contact_id = c.id
+                        LEFT JOIN integrations i ON otn.integration_id = i.id
+                        LEFT JOIN pixels p ON otn.pixel_id = p.id
+                        LEFT JOIN partner_lists l ON otn.partner_list_id = l.id`
+
     queryParams.push(searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue);
   }
 
@@ -519,7 +526,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const countQuery = `SELECT COUNT(*) AS total
                       FROM recent_outgoing_notifications otn
-                      INNER JOIN contacts c ON otn.contact_id = c.id
+                      ${innerJoins}
                       WHERE otn.partner_id = ?
                       ${whereClause}`
 
