@@ -500,6 +500,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               WHERE 1 = 1
               AND otn.partner_id = ?
               ${whereClause}
+              ORDER BY ${sortColumn} ${sortDirection}
               LIMIT ? OFFSET ?`;
 
   queryParams.push(limit, offset);
