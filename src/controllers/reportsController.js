@@ -472,12 +472,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                     OR p.pixel_name LIKE ?
                     OR l.name LIKE ?
                     OR i.name LIKE ?
-                    OR otn.status_code LIKE ?
-                    OR otn.contact_id LIKE ?
-                    OR otn.integration_id LIKE ?
-                    OR otn.pixel_id LIKE ?
-                    OR otn.partner_id LIKE ?
-                    OR otn.partner_list_id LIKE ?
+                    OR otn.status_code = ?
+                    OR otn.contact_id = ?
+                    OR otn.integration_id = ?
+                    OR otn.pixel_id = ?
+                    OR otn.partner_id = ?
+                    OR otn.partner_list_id = ?
                     )`;
     const searchValue = `%${search.value}%`;
     queryParams.push(searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue);
