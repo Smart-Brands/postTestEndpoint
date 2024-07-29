@@ -459,35 +459,24 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     whereClause+= "AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)"
   }
 
-  let emlField = '';
-  if (partner.hash_access) {
-    emlField = 'c.email_hash';
-  } else {
-    emlField = 'c.email_address';
-  }
+  const emlField = partner.hash_access ? 'c.email_hash' : 'c.email_address';
 
   let innerJoins = '';
 
-  if (search && search.value) {
+  if (search?.value) {
     console.log(">>> SEARCH: ", search)
-    whereClause += ` AND (${emlField} LIKE ?
-                    OR p.pixel_name LIKE ?
-                    OR l.name LIKE ?
-                    OR i.name LIKE ?
-                    OR otn.status_code LIKE ?
-                    OR otn.contact_id = ?
-                    OR otn.integration_id = ?
-                    OR otn.pixel_id = ?
-                    OR otn.partner_id = ?
-                    OR otn.partner_list_id = ?
-                    )`;
+    whereClause += ` AND (${emlField} LIKE ? OR p.pixel_name LIKE ? OR l.name LIKE ?
+                    OR i.name LIKE ? OR otn.status_code LIKE ? OR otn.contact_id = ?
+                    OR otn.integration_id = ? OR otn.pixel_id = ? OR otn.partner_id = ?
+                    OR otn.partner_list_id = ?)`;
+
     const searchValue = `%${search.value}%`;
     innerJoins = `LEFT JOIN contacts c ON otn.contact_id = c.id
                         LEFT JOIN integrations i ON otn.integration_id = i.id
                         LEFT JOIN pixels p ON otn.pixel_id = p.id
                         LEFT JOIN partner_lists l ON otn.partner_list_id = l.id`
 
-    queryParams.push(searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue, searchValue);
+    queryParams.push(...Array(10).fill(searchValue));
   }
 
   console.log(">>> QUERY PARAMS: ", queryParams)
@@ -524,11 +513,15 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   queryParams.push(limit, offset);
   console.log("QUERY PARAMS ARR: ", queryParams)
 
-  const countQuery = `SELECT COUNT(*) AS total
+    const countQuery = `SELECT COUNT(*) AS total
                       FROM recent_outgoing_notifications otn
-                      ${innerJoins}
                       WHERE otn.partner_id = ?
                       ${whereClause}`;
+  // const countQuery = `SELECT COUNT(*) AS total
+  //                     FROM recent_outgoing_notifications otn
+  //                     ${innerJoins}
+  //                     WHERE otn.partner_id = ?
+  //                     ${whereClause}`;
 
   console.log("QUERY: ", query)
   console.log("COUNT QUERY: ", countQuery)
