@@ -528,13 +528,18 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                       FROM recent_outgoing_notifications otn
                       ${innerJoins}
                       WHERE otn.partner_id = ?
-                      ${whereClause}`
+                      ${whereClause}`;
 
   console.log("QUERY: ", query)
   console.log("COUNT QUERY: ", countQuery)
 
-  const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
-  const totalRecords = parseInt(totalResult[0].total, 10);
+  let totalRecords;
+  try{
+    const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
+    totalRecords = parseInt(totalResult[0].total, 10);
+  } catch(err) {
+    totalRecords = 10;
+  }
 
   const result = await main.sql.query(query, queryParams);
   console.log("USED: ", query, queryParams)
