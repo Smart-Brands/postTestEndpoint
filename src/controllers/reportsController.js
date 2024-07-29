@@ -535,11 +535,14 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   let totalRecords;
   try{
+    console.log(">>> QUERY COUNT TRY <<<")
     const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
     totalRecords = parseInt(totalResult[0].total, 10);
   } catch(err) {
+    console.log("QUERY COUNT CATCH ERROR: ", err);
     totalRecords = 10;
   }
+  console.log("TOTAL RECORDS: ", totalRecords);
 
   const result = await main.sql.query(query, queryParams);
   console.log("USED: ", query, queryParams)
