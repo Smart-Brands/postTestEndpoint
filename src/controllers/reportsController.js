@@ -420,7 +420,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const limit = parseInt(length, 10) || 10;
   const offset = parseInt(start, 10) || 0;
-  console.log("EXPORT: ", isExport, " | PARAMS: ", event)
 	
   const columnsMap = [
     'email_address',
@@ -498,13 +497,30 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               FROM recent_outgoing_notifications otn
               WHERE otn.partner_id = ?
               ${whereClause}
-              ORDER BY ${sortColumn} ${sortDirection}
-              LIMIT ? OFFSET ?`;
+              ORDER BY ${sortColumn} ${sortDirection}`;
 
-  queryParams.push(limit, offset);
-  console.log("QUERY PARAMS ARR: ", queryParams)
+  if (isExport === "yes") {
+    console.log("IN ELSE CONDITION TO GET CSV EXPORT DATA")
+    const result = await main.sql.query(query, queryParams);
 
-    const countQuery = `SELECT COUNT(*) AS total
+    const response = {
+      draw: parseInt(draw, 10),
+      recordsTotal: totalRecords,
+      recordsFiltered: totalRecords,
+      data: result,
+    };
+
+    console.log("EXPORT RESPONSE: ", response)
+
+    await main.sql.end();
+    return main.responseWrapper(response);
+  } else {
+     query += ` LIMIT ? OFFSET ?`;
+     queryParams.push(limit, offset);	
+	
+     console.log("QUERY PARAMS ARR: ", queryParams)
+
+      const countQuery = `SELECT COUNT(*) AS total
                       FROM (
 			      SELECT
 		                  ${emlField} AS email_address,
@@ -557,6 +573,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   await main.sql.end();
   return main.responseWrapper(response);
+ } 
 };
 
 module.exports.getNotificationsForPartner = async event => {
