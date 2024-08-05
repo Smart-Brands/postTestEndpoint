@@ -420,7 +420,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const limit = parseInt(length, 10) || 10;
   const offset = parseInt(start, 10) || 0;
-  console.log("EXPORT: ", isExport, " | PARAMS: ", event.queryStringParameters)
+  console.log("EXPORT: ", isExport, " | PARAMS: ", event)
 	
   const columnsMap = [
     'email_address',
