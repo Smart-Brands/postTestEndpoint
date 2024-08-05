@@ -501,41 +501,41 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   queryParams.push(limit, offset);
   console.log("QUERY PARAMS ARR: ", queryParams)
 
-    // const countQuery = `SELECT COUNT(*) AS total
-    //                   FROM (
-			 //      SELECT
-		  //                 ${emlField} AS email_address,
-		  //                 otn.integration_name AS integration_name,
-		  //                 otn.uuid AS uuid,
-		  //                 otn.pixel_name AS pixel_name,
-		  //                 otn.pixel_description AS pixel_description,
-		  //                 otn.list_name AS list_name,
-		  //                 otn.trigger_name AS trigger_name,
-		  //                 otn.contact_id,
-		  //                 otn.integration_id,
-		  //                 otn.pixel_id,
-		  //                 otn.partner_id,
-		  //                 otn.partner_list_id,
-		  //                 otn.status_code,
-		  //                 otn.response_text,
-		  //                 otn.date_created,
-		  //                 otn.date_sent
-		  //             FROM recent_outgoing_notifications otn
-				// WHERE otn.partner_id = ?
-				// ${whereClause}
-		  //     ) tmp`;
+    const countQuery = `SELECT COUNT(*) AS total
+                      FROM (
+			      SELECT
+		                  ${emlField} AS email_address,
+		                  otn.integration_name AS integration_name,
+		                  otn.uuid AS uuid,
+		                  otn.pixel_name AS pixel_name,
+		                  otn.pixel_description AS pixel_description,
+		                  otn.list_name AS list_name,
+		                  otn.trigger_name AS trigger_name,
+		                  otn.contact_id,
+		                  otn.integration_id,
+		                  otn.pixel_id,
+		                  otn.partner_id,
+		                  otn.partner_list_id,
+		                  otn.status_code,
+		                  otn.response_text,
+		                  otn.date_created,
+		                  otn.date_sent
+		              FROM recent_outgoing_notifications otn
+				WHERE otn.partner_id = ?
+				${whereClause}
+		      ) tmp`;
 
   console.log("QUERY: ", query)
-  // console.log("COUNT QUERY: ", countQuery)
+  console.log("COUNT QUERY: ", countQuery)
 
   let totalRecords = 10;
-  // try{
-  //   console.log(">>> QUERY COUNT TRY <<<")
-  //   const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
-  //   totalRecords = parseInt(totalResult[0].total, 10);
-  // } catch(err) {
-  //   console.log("QUERY COUNT CATCH ERROR: ", err);
-  // }
+  try{
+    console.log(">>> QUERY COUNT TRY <<<")
+    const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
+    totalRecords = parseInt(totalResult[0].total, 10);
+  } catch(err) {
+    console.log("QUERY COUNT CATCH ERROR: ", err);
+  }
   console.log("TOTAL RECORDS: ", totalRecords);
 
   const result = await main.sql.query(query, queryParams);
