@@ -461,8 +461,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const emlField = partner.hash_access ? 'MD5(otn.email_address)' : 'otn.email_address';
 
-  let innerJoins = '';
-
   if (search?.value) {
     console.log(">>> SEARCH: ", search)
     whereClause += ` AND (${emlField} LIKE ? OR p.pixel_name LIKE ? OR l.name LIKE ?
@@ -471,10 +469,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                     OR otn.partner_list_id = ?)`;
 
     const searchValue = `%${search.value}%`;
-    innerJoins = `LEFT JOIN contacts c ON otn.contact_id = c.id
-                        LEFT JOIN integrations i ON otn.integration_id = i.id
-                        LEFT JOIN pixels p ON otn.pixel_id = p.id
-                        LEFT JOIN partner_lists l ON otn.partner_list_id = l.id`
 
     queryParams.push(...Array(10).fill(searchValue));
   }
@@ -507,47 +501,41 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   queryParams.push(limit, offset);
   console.log("QUERY PARAMS ARR: ", queryParams)
 
-    const countQuery = `SELECT COUNT(*) AS total
-                      FROM (
-			      SELECT
-		                  ${emlField} AS email_address,
-		                  otn.integration_name AS integration_name,
-		                  otn.uuid AS uuid,
-		                  otn.pixel_name AS pixel_name,
-		                  otn.pixel_description AS pixel_description,
-		                  otn.list_name AS list_name,
-		                  otn.trigger_name AS trigger_name,
-		                  otn.contact_id,
-		                  otn.integration_id,
-		                  otn.pixel_id,
-		                  otn.partner_id,
-		                  otn.partner_list_id,
-		                  otn.status_code,
-		                  otn.response_text,
-		                  otn.date_created,
-		                  otn.date_sent
-		              FROM recent_outgoing_notifications otn
-				WHERE otn.partner_id = ?
-				${whereClause}
-		      ) tmp`;
-  // const countQuery = `SELECT COUNT(*) AS total
-  //                     FROM recent_outgoing_notifications otn
-  //                     ${innerJoins}
-  //                     WHERE otn.partner_id = ?
-  //                     ${whereClause}`;
+    // const countQuery = `SELECT COUNT(*) AS total
+    //                   FROM (
+			 //      SELECT
+		  //                 ${emlField} AS email_address,
+		  //                 otn.integration_name AS integration_name,
+		  //                 otn.uuid AS uuid,
+		  //                 otn.pixel_name AS pixel_name,
+		  //                 otn.pixel_description AS pixel_description,
+		  //                 otn.list_name AS list_name,
+		  //                 otn.trigger_name AS trigger_name,
+		  //                 otn.contact_id,
+		  //                 otn.integration_id,
+		  //                 otn.pixel_id,
+		  //                 otn.partner_id,
+		  //                 otn.partner_list_id,
+		  //                 otn.status_code,
+		  //                 otn.response_text,
+		  //                 otn.date_created,
+		  //                 otn.date_sent
+		  //             FROM recent_outgoing_notifications otn
+				// WHERE otn.partner_id = ?
+				// ${whereClause}
+		  //     ) tmp`;
 
   console.log("QUERY: ", query)
-  console.log("COUNT QUERY: ", countQuery)
+  // console.log("COUNT QUERY: ", countQuery)
 
   let totalRecords = 10;
-  try{
-    console.log(">>> QUERY COUNT TRY <<<")
-    const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
-    totalRecords = parseInt(totalResult[0].total, 10);
-  } catch(err) {
-    console.log("QUERY COUNT CATCH ERROR: ", err);
-    totalRecords = 10;
-  }
+  // try{
+  //   console.log(">>> QUERY COUNT TRY <<<")
+  //   const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
+  //   totalRecords = parseInt(totalResult[0].total, 10);
+  // } catch(err) {
+  //   console.log("QUERY COUNT CATCH ERROR: ", err);
+  // }
   console.log("TOTAL RECORDS: ", totalRecords);
 
   const result = await main.sql.query(query, queryParams);
