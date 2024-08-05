@@ -470,7 +470,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     const searchValue = `%${search.value}%`;
 
-    queryParams.push(...Array(10).fill(searchValue));
+    queryParams.push(...Array(11).fill(searchValue));
   }
 
   console.log(">>> QUERY PARAMS: ", queryParams)
