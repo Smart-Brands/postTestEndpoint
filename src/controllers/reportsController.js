@@ -459,14 +459,14 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     whereClause+= "AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)"
   }
 
-  const emlField = partner.hash_access ? 'c.email_hash' : 'c.email_address';
+  const emlField = partner.hash_access ? 'MD5(otn.email_address)' : 'otn.email_address';
 
   let innerJoins = '';
 
   if (search?.value) {
     console.log(">>> SEARCH: ", search)
     whereClause += ` AND (${emlField} LIKE ? OR p.pixel_name LIKE ? OR l.name LIKE ?
-                    OR i.name LIKE ? OR otn.status_code LIKE ? OR otn.contact_id = ?
+                    OR otn.integration_name LIKE ? OR otn.status_code LIKE ? OR otn.contact_id = ?
                     OR otn.integration_id = ? OR otn.pixel_id = ? OR otn.partner_id = ?
                     OR otn.partner_list_id = ?)`;
 
@@ -483,12 +483,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   const query = `SELECT
                   ${emlField} AS email_address,
-                  i.name AS integration_name,
-                  p.uuid AS uuid,
-                  p.pixel_name AS pixel_name,
-                  p.description AS pixel_description,
-                  l.name AS list_name,
-                  t.name AS trigger_name,
+                  otn.integration_name AS integration_name,
+                  otn.uuid AS uuid,
+                  otn.pixel_name AS pixel_name,
+                  otn.pixel_description AS pixel_description,
+                  otn.list_name AS list_name,
+                  otn.trigger_name AS trigger_name,
                   otn.contact_id,
                   otn.integration_id,
                   otn.pixel_id,
@@ -499,13 +499,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                   otn.date_created,
                   otn.date_sent
               FROM recent_outgoing_notifications otn
-              INNER JOIN contacts c ON otn.contact_id = c.id
-              LEFT JOIN integrations i ON otn.integration_id = i.id
-              LEFT JOIN pixels p ON otn.pixel_id = p.id
-              LEFT JOIN partner_lists l ON otn.partner_list_id = l.id
-              LEFT JOIN partner_triggers t ON otn.integration_id = t.integration_id AND l.trigger_id = t.id
-              WHERE 1 = 1
-              AND otn.partner_id = ?
+              WHERE otn.partner_id = ?
               ${whereClause}
               ORDER BY ${sortColumn} ${sortDirection}
               LIMIT ? OFFSET ?`;
@@ -513,10 +507,29 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   queryParams.push(limit, offset);
   console.log("QUERY PARAMS ARR: ", queryParams)
 
-    // const countQuery = `SELECT COUNT(*) AS total
-    //                   FROM recent_outgoing_notifications otn
-    //                   WHERE otn.partner_id = ?
-    //                   ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) AS total
+                      FROM (
+			      SELECT
+		                  ${emlField} AS email_address,
+		                  otn.integration_name AS integration_name,
+		                  otn.uuid AS uuid,
+		                  otn.pixel_name AS pixel_name,
+		                  otn.pixel_description AS pixel_description,
+		                  otn.list_name AS list_name,
+		                  otn.trigger_name AS trigger_name,
+		                  otn.contact_id,
+		                  otn.integration_id,
+		                  otn.pixel_id,
+		                  otn.partner_id,
+		                  otn.partner_list_id,
+		                  otn.status_code,
+		                  otn.response_text,
+		                  otn.date_created,
+		                  otn.date_sent
+		              FROM recent_outgoing_notifications otn
+				WHERE otn.partner_id = ?
+				${whereClause}
+		      ) tmp`;
   // const countQuery = `SELECT COUNT(*) AS total
   //                     FROM recent_outgoing_notifications otn
   //                     ${innerJoins}
@@ -524,17 +537,17 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   //                     ${whereClause}`;
 
   console.log("QUERY: ", query)
-  // console.log("COUNT QUERY: ", countQuery)
+  console.log("COUNT QUERY: ", countQuery)
 
   let totalRecords = 10;
-  // try{
-  //   console.log(">>> QUERY COUNT TRY <<<")
-  //   const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
-  //   totalRecords = parseInt(totalResult[0].total, 10);
-  // } catch(err) {
-  //   console.log("QUERY COUNT CATCH ERROR: ", err);
-  //   totalRecords = 10;
-  // }
+  try{
+    console.log(">>> QUERY COUNT TRY <<<")
+    const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
+    totalRecords = parseInt(totalResult[0].total, 10);
+  } catch(err) {
+    console.log("QUERY COUNT CATCH ERROR: ", err);
+    totalRecords = 10;
+  }
   console.log("TOTAL RECORDS: ", totalRecords);
 
   const result = await main.sql.query(query, queryParams);
