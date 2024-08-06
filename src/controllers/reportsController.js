@@ -433,24 +433,19 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'date_sent',
   ];
 
-  console.log("QUERY PARAMS: ", draw, start, length, order, columns, search, dateStart, dateEnd)
-
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
   const sortColumn = columnsMap[sortColumnIndex] || columnsMap[0];
   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
-  console.log(">>> SORT COLS: ", sortColumn, sortDirection)
 
   let queryParams = [partner.id];
   let whereClause = '';
 
   if (dateStart) {
-    console.log(">>> START: ", dateStart)
     whereClause += ' AND otn.date_sent >= ?';
     queryParams.push(`${dateStart} 00:00:00`);
   }
 
   if (dateEnd) {
-    console.log(">>> END: ", dateEnd)
     whereClause += ' AND otn.date_sent <= ?';
     queryParams.push(`${dateEnd} 24:59:59`);
   }
@@ -462,7 +457,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const emlField = partner.hash_access ? 'MD5(otn.email_address)' : 'otn.email_address';
 
   if (search?.value) {
-    console.log(">>> SEARCH: ", search)
     whereClause += ` AND (${emlField} LIKE ? OR otn.pixel_name LIKE ? OR otn.list_name LIKE ?
                     OR otn.integration_name LIKE ? OR otn.status_code LIKE ? OR otn.uuid LIKE ? OR otn.contact_id = ?
                     OR otn.integration_id = ? OR otn.pixel_id = ? OR otn.partner_id = ? 
@@ -474,14 +468,11 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     queryParams.push(...Array(14).fill(searchValue));
   }
 
-  console.log(">>> QUERY PARAMS: ", queryParams)
-
   let query = `SELECT
                   ${emlField} AS email_address,
                   otn.integration_name AS integration_name,
                   otn.uuid AS uuid,
                   otn.pixel_name AS pixel_name,
-                  otn.pixel_description AS pixel_description,
                   otn.list_name AS list_name,
                   otn.trigger_name AS trigger_name,
                   otn.contact_id,
@@ -499,7 +490,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               ORDER BY ${sortColumn} ${sortDirection}`;
 
   if (isExport === "yes") {
-    console.log("IN ELSE CONDITION TO GET CSV EXPORT DATA")
      query += ` LIMIT 10000 OFFSET ?`;
      queryParams.push(offset);	
 
@@ -525,50 +515,20 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
      query += ` LIMIT ? OFFSET ?`;
      queryParams.push(limit, offset);	
 	
-     console.log("QUERY PARAMS ARR: ", queryParams)
-
       const countQuery = `SELECT COUNT(*) AS total
-                      FROM (
-			      SELECT
-		                  ${emlField} AS email_address,
-		                  otn.integration_name AS integration_name,
-		                  otn.uuid AS uuid,
-		                  otn.pixel_name AS pixel_name,
-		                  otn.pixel_description AS pixel_description,
-		                  otn.list_name AS list_name,
-		                  otn.trigger_name AS trigger_name,
-		                  otn.contact_id,
-		                  otn.integration_id,
-		                  otn.pixel_id,
-		                  otn.partner_id,
-		                  otn.partner_list_id,
-		                  otn.status_code,
-		                  otn.response_text,
-		                  otn.date_created,
-		                  otn.date_sent
-		              FROM recent_outgoing_notifications otn
-				WHERE otn.partner_id = ?
-				${whereClause}
-		      ) tmp`;
-
-  console.log("QUERY: ", query)
-  console.log("COUNT QUERY: ", countQuery)
+                          FROM recent_outgoing_notifications otn
+			  WHERE otn.partner_id = ?
+			  ${whereClause}`
 
   let totalRecords = 10;
   try{
-    console.log(">>> QUERY COUNT TRY <<<")
     const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
     totalRecords = parseInt(totalResult[0].total, 10);
   } catch(err) {
     console.log("QUERY COUNT CATCH ERROR: ", err);
   }
-  console.log("TOTAL RECORDS: ", totalRecords);
 
   const result = await main.sql.query(query, queryParams);
-  console.log("USED: ", query, queryParams)
-
-  console.log("RESULT: ", result)
-
   const response = {
     draw: parseInt(draw, 10),
     recordsTotal: totalRecords,
