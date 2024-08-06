@@ -490,8 +490,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               ORDER BY ${sortColumn} ${sortDirection}`;
 
   if (isExport === "yes") {
-     console.log("EXPORT" )
-     query += ` LIMIT 1000 OFFSET ?`;
+     query += ` LIMIT 10000 OFFSET ?`;
      queryParams.push(offset);	
 
     try {
