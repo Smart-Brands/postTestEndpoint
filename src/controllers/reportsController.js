@@ -501,19 +501,23 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   if (isExport === "yes") {
     console.log("IN ELSE CONDITION TO GET CSV EXPORT DATA")
-    const result = await main.sql.query(query, queryParams);
 
-    const response = {
-      draw: parseInt(draw, 10),
-      recordsTotal: totalRecords,
-      recordsFiltered: totalRecords,
-      data: result,
-    };
+    try{
+      const result = await main.sql.query(query, queryParams);
+     // const response = {
+     //   draw: parseInt(draw, 10),
+     //   recordsTotal: totalRecords,
+     //   recordsFiltered: totalRecords,
+     //   data: result,
+     // };
 
-    console.log("EXPORT RESPONSE: ", response)
-
+     console.log("EXPORT RESPONSE: ", response)
+   } catch(err) {
+    console.log("ERROR ON EXPORT REPORT QUERY: ", err);
+   }
+	  
     await main.sql.end();
-    return main.responseWrapper(response);
+    return main.responseWrapper(result);
   } else {
      query += ` LIMIT ? OFFSET ?`;
      queryParams.push(limit, offset);	
