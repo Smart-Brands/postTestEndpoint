@@ -433,11 +433,9 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'date_sent',
   ];
 
-  const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 8) : 8;
-  // const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
-  const sortColumn = columnsMap['date_sent']
-  // const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
-  const sortDirection = 'DESC';
+  const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 9) : 8;
+  const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
+  const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
 
   console.log("ColIndex: ", sortColumnIndex, " | SortCols: ", sortColumn, " | SortDirection: ", sortDirection);
 
