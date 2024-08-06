@@ -415,7 +415,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
   const isExport = event.queryStringParameters?.export;
-  const { draw, start, length, order, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
+  const { draw, start, length, order =  {column: 9, dir: 'desc', name: ''}, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
 
   const limit = parseInt(length, 10) || 10;
