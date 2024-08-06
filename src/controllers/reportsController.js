@@ -415,7 +415,7 @@ module.exports.getOutgoingNotificationsForPartner = async event => {
 
 module.exports.postOutgoingNotificationsForPartner = async event => {
   const isExport = event.queryStringParameters?.export;
-  const { draw, start, length, order =  {column: 9, dir: 'desc', name: ''}, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
+  const { draw, start, length, order, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
 
   const limit = parseInt(length, 10) || 10;
@@ -434,8 +434,10 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   ];
 
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 9) : 9;
-  const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
-  const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
+  // const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
+  const sortColumn = columnsMap['date_sent']
+  // const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
+  const sortDirection = 'DESC';
 
   console.log("ColIndex: ", sortColumnIndex, " | SortCols: ", sortColumn, " | SortDirection: ", sortDirection);
 
