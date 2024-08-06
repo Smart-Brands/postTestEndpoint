@@ -437,6 +437,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
 
+  console.log("ColIndex: ", sortColumnIndex, " | SortCols: ", sortColumn, " | SortDirection: ", sortDirection);
+
   let queryParams = [partner.id];
   let whereClause = '';
 
