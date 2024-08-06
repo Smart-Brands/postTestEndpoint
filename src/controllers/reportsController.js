@@ -434,8 +434,8 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   ];
 
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 0;
-  const sortColumn = columnsMap[sortColumnIndex] || columnsMap[0];
-  const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'ASC';
+  const sortColumn = columnsMap[sortColumnIndex] || columnsMap[9];
+  const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
 
   let queryParams = [partner.id];
   let whereClause = '';
