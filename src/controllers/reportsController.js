@@ -501,7 +501,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   if (isExport === "yes") {
     console.log("IN ELSE CONDITION TO GET CSV EXPORT DATA")
-     query += ` LIMIT 25000 OFFSET ?`;
+     query += ` LIMIT 10000 OFFSET ?`;
      queryParams.push(offset);	
 
     try {
