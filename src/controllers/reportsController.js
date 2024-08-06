@@ -477,7 +477,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   console.log(">>> QUERY PARAMS: ", queryParams)
 
-  const query = `SELECT
+  let query = `SELECT
                   ${emlField} AS email_address,
                   otn.integration_name AS integration_name,
                   otn.uuid AS uuid,
