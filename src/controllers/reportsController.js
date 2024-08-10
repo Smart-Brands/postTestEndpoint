@@ -457,7 +457,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const emlField = partner.hash_access ? 'MD5(otn.email_address)' : 'otn.email_address';
 
   if (search?.value) {
-    whereClause += ` AND (${emlField} LIKE ? OR otn.pixel_name LIKE ? OR otn.list_name LIKE ?
+    whereClause += ` AND (${emlField} LIKE ? OR otn.list_name LIKE ?
                     OR otn.integration_name LIKE ? OR otn.status_code LIKE ? OR otn.uuid LIKE ? OR otn.contact_id = ?
                     OR otn.integration_id = ? OR otn.pixel_id = ? OR otn.partner_id = ? 
                     OR otn.partner_list_id = ? OR otn.response_text LIKE ? OR otn.date_created LIKE ?
@@ -465,14 +465,14 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
     const searchValue = `%${search.value}%`;
 
-    queryParams.push(...Array(14).fill(searchValue));
+    queryParams.push(...Array(13).fill(searchValue));
   }
 
   let query = `SELECT
                   ${emlField} AS email_address,
                   otn.integration_name AS integration_name,
                   otn.uuid AS uuid,
-                  otn.pixel_name AS pixel_name,
+                  '' AS pixel_name,
                   otn.list_name AS list_name,
                   otn.trigger_name AS trigger_name,
                   otn.contact_id,
