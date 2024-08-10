@@ -424,7 +424,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const columnsMap = [
     'email_address',
     'uuid',
-    'pixel_name',
     'list_name',
     'integration_name',
     'status_code',
@@ -472,7 +471,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                   ${emlField} AS email_address,
                   otn.integration_name AS integration_name,
                   otn.uuid AS uuid,
-                  '' AS pixel_name,
                   otn.list_name AS list_name,
                   otn.trigger_name AS trigger_name,
                   otn.contact_id,
