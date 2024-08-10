@@ -424,6 +424,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const columnsMap = [
     'email_address',
     'uuid',
+    'pixel_name',
     'list_name',
     'integration_name',
     'status_code',
@@ -432,7 +433,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     'date_sent',
   ];
 
-  const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 7;
+  const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 8;
   const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
   console.log(" ### sortColumn: ", sortColumn)
@@ -472,6 +473,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                   ${emlField} AS email_address,
                   otn.integration_name AS integration_name,
                   otn.uuid AS uuid,
+		  '' AS pixel_name,
                   otn.list_name AS list_name,
                   otn.trigger_name AS trigger_name,
                   otn.contact_id,
