@@ -435,6 +435,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 7;
   const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
+  console.log(" ### sortColumn: ", sortColumn)
 
   let queryParams = [partner.id];
   let whereClause = '';
@@ -520,13 +521,18 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   let totalRecords = 10;
   try{
+    console.log(" *** BEFORE COUNT RUNS ")
+
     const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
     totalRecords = parseInt(totalResult[0].total, 10);
   } catch(err) {
     console.log("QUERY COUNT CATCH ERROR: ", err);
   }
+  console.log(" >>> BEFORE QUERY RUNS ")
 
   const result = await main.sql.query(query, queryParams);
+  console.log("RESULT: ", result)
+
   const response = {
     draw: parseInt(draw, 10),
     recordsTotal: totalRecords,
