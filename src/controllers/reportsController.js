@@ -531,6 +531,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("QUERY COUNT CATCH ERROR: ", err);
   }
   console.log(" >>> BEFORE QUERY RUNS ")
+  console.log("CHECK QUERY: ", query, " | PARAMS:  ", queryParams)
 
   const result = await main.sql.query(query, queryParams);
   console.log("RESULT: ", result)
