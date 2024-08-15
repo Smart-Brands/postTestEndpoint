@@ -423,15 +423,15 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const offset = parseInt(start, 10) || 0;
 
   const columnsMap = [
-    'otn.email_address',
-    'otn.uuid',
-    'otn.pixel_name',
-    'otn.list_name',
-    'otn.integration_name',
-    'otn.status_code',
-    'otn.response_text',
-    'otn.date_created',
-    'otn.date_sent',
+    'email_address',
+    'uuid',
+    'pixel_name',
+    'list_name',
+    'integration_name',
+    'status_code',
+    'response_text',
+    'date_created',
+    'date_sent',
   ];
 
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 8;
