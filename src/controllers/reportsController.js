@@ -417,7 +417,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const isExport = event.queryStringParameters?.export;
   const { draw, start, length, order, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
-  console.log('dates', dateStart, dateEnd)
 
   const limit = parseInt(length, 10) || 10;
   const offset = parseInt(start, 10) || 0;
@@ -442,12 +441,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   let queryParams = [partner.id];
   let whereClause = '';
 
-  if (dateStart && dateStart !== undefined) {
+  if (dateStart) {
     whereClause += ' AND otn.date_sent >= ?';
     queryParams.push(`${dateStart} 00:00:00`);
   }
 
-  if (dateEnd && dateEnd !== undefined) {
+  if (dateEnd) {
     whereClause += ' AND otn.date_sent <= ?';
     queryParams.push(`${dateEnd} 24:59:59`);
   }
