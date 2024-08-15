@@ -442,12 +442,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   let queryParams = [partner.id];
   let whereClause = '';
 
-  if (dateStart) {
+  if (dateStart && dateStart !== undefined) {
     whereClause += ' AND otn.date_sent >= ?';
     queryParams.push(`${dateStart} 00:00:00`);
   }
 
-  if (dateEnd) {
+  if (dateEnd && dateEnd !== undefined) {
     whereClause += ' AND otn.date_sent <= ?';
     queryParams.push(`${dateEnd} 24:59:59`);
   }
