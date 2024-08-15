@@ -417,10 +417,11 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const isExport = event.queryStringParameters?.export;
   const { draw, start, length, order, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
+  console.log('params', event.queryStringParameters)
 
   const limit = parseInt(length, 10) || 10;
   const offset = parseInt(start, 10) || 0;
-	
+
   const columnsMap = [
     'email_address',
     'uuid',
@@ -460,7 +461,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   if (search?.value) {
     whereClause += ` AND (${emlField} LIKE ? OR otn.list_name LIKE ?
                     OR otn.integration_name LIKE ? OR otn.status_code LIKE ? OR otn.uuid LIKE ? OR otn.contact_id = ?
-                    OR otn.integration_id = ? OR otn.pixel_id = ? OR otn.partner_id = ? 
+                    OR otn.integration_id = ? OR otn.pixel_id = ? OR otn.partner_id = ?
                     OR otn.partner_list_id = ? OR otn.response_text LIKE ? OR otn.date_created LIKE ?
                     OR otn.date_sent LIKE ?)`;
 
@@ -492,7 +493,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   if (isExport === "yes") {
      query += ` LIMIT 10000 OFFSET ?`;
-     queryParams.push(offset);	
+     queryParams.push(offset);
 
     try {
       const result = await main.sql.query(query, queryParams);
@@ -509,13 +510,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
     console.log("ERROR ON EXPORT REPORT QUERY: ", err);
     const result = {}
    }
-	  
+
     await main.sql.end();
     return main.responseWrapper(result);
   } else {
      query += ` LIMIT ? OFFSET ?`;
-     queryParams.push(limit, offset);	
-	
+     queryParams.push(limit, offset);
+
       const countQuery = `SELECT COUNT(*) AS total
                           FROM recent_outgoing_notifications otn
 			  WHERE otn.partner_id = ?
@@ -547,7 +548,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   await main.sql.end();
   return main.responseWrapper(response);
- } 
+ }
 };
 
 module.exports.getNotificationsForPartner = async event => {
