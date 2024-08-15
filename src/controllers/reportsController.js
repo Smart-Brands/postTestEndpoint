@@ -442,16 +442,19 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   let whereClause = '';
 
   if (dateStart) {
+    console.log("condition A")
     whereClause += ' AND otn.date_sent >= ?';
     queryParams.push(`${dateStart} 00:00:00`);
   }
 
   if (dateEnd) {
+    console.log("condition B")
     whereClause += ' AND otn.date_sent <= ?';
     queryParams.push(`${dateEnd} 24:59:59`);
   }
 
   if(!dateStart && !dateEnd) {
+    console.log("condition C")
     whereClause+= "AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)"
   }
 
