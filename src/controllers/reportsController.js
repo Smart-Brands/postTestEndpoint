@@ -417,7 +417,14 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const isExport = event.queryStringParameters?.export;
   const { draw, start, length, order, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
-  console.log('UI data', search)
+  console.log('UI data draw:', draw);
+  console.log('UI data start:', start);
+  console.log('UI data length:', length);
+  console.log('UI data order:', order);
+  console.log('UI data columns:', columns);
+  console.log('UI data search:', search);
+  console.log('UI data dateStart:', dateStart);
+  console.log('UI data dateEnd:', dateEnd);
 
   const limit = parseInt(length, 10) || 10;
   const offset = parseInt(start, 10) || 0;
