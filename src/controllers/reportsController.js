@@ -417,14 +417,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const isExport = event.queryStringParameters?.export;
   const { draw, start, length, order, columns, search, dateStart, dateEnd } = JSON.parse(event.body);
   const partner = await main.authenticateUser(event);
-  console.log('UI data draw:', draw);
-  console.log('UI data start:', start);
-  console.log('UI data length:', length);
-  console.log('UI data order:', order);
-  console.log('UI data columns:', columns);
-  console.log('UI data search:', search);
-  console.log('UI data dateStart:', dateStart);
-  console.log('UI data dateEnd:', dateEnd);
 
   const limit = parseInt(length, 10) || 10;
   const offset = parseInt(start, 10) || 0;
@@ -444,10 +436,13 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
   const sortColumnIndex = order && order[0] && typeof order[0].column !== 'undefined' ? parseInt(order[0].column, 10) : 8;
   const sortColumn = columnsMap[sortColumnIndex] || columnsMap['date_sent'];
   const sortDirection = order && order[0] && ['asc', 'desc'].includes(order[0].dir.toLowerCase()) ? order[0].dir.toUpperCase() : 'DESC';
-  console.log(" ### sortColumn: ", sortColumn)
+  console.log("### sortColumn:", sortColumn);
 
   let queryParams = [partner.id];
   let whereClause = '';
+
+  console.log("### dateStart:", dateStart);
+  console.log("### dateEnd:", dateEnd);
 
   if (dateStart) {
     whereClause += ' AND otn.date_sent >= ?';
@@ -456,11 +451,11 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   if (dateEnd) {
     whereClause += ' AND otn.date_sent <= ?';
-    queryParams.push(`${dateEnd} 24:59:59`);
+    queryParams.push(`${dateEnd} 23:59:59`); // Fixed to correct the last minute of the day
   }
 
-  if(!dateStart && !dateEnd) {
-    whereClause+= "AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)"
+  if (!dateStart && !dateEnd) {
+    whereClause += " AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)";
   }
 
   const emlField = partner.hash_access ? 'MD5(otn.email_address)' : 'otn.email_address';
@@ -473,7 +468,6 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                     OR otn.date_sent LIKE ?)`;
 
     const searchValue = `%${search.value}%`;
-
     queryParams.push(...Array(13).fill(searchValue));
   }
 
@@ -481,7 +475,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
                   ${emlField} AS email_address,
                   otn.integration_name AS integration_name,
                   otn.uuid AS uuid,
-		  '' AS pixel_name,
+                  '' AS pixel_name,
                   otn.list_name AS list_name,
                   otn.trigger_name AS trigger_name,
                   otn.contact_id,
@@ -498,9 +492,12 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
               ${whereClause}
               ORDER BY ${sortColumn} ${sortDirection}`;
 
+  console.log("### Final Query:", query);
+  console.log("### Query Params:", queryParams);
+
   if (isExport === "yes") {
-     query += ` LIMIT 10000 OFFSET ?`;
-     queryParams.push(offset);
+    query += ` LIMIT 10000 OFFSET ?`;
+    queryParams.push(offset);
 
     try {
       const result = await main.sql.query(query, queryParams);
@@ -513,49 +510,50 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
       await main.sql.end();
       return main.responseWrapper(response);
-   } catch(err) {
-    console.log("ERROR ON EXPORT REPORT QUERY: ", err);
-    const result = {}
-   }
+    } catch (err) {
+      console.log("ERROR ON EXPORT REPORT QUERY:", err);
+      const result = {};
+    }
 
     await main.sql.end();
     return main.responseWrapper(result);
   } else {
-     query += ` LIMIT ? OFFSET ?`;
-     queryParams.push(limit, offset);
+    query += ` LIMIT ? OFFSET ?`;
+    queryParams.push(limit, offset);
 
-      const countQuery = `SELECT COUNT(*) AS total
-                          FROM recent_outgoing_notifications otn
-			  WHERE otn.partner_id = ?
-			  ${whereClause}`
+    const countQuery = `SELECT COUNT(*) AS total
+                        FROM recent_outgoing_notifications otn
+                        WHERE otn.partner_id = ?
+                        ${whereClause}`;
 
-  let totalRecords = 10;
-  try{
-    console.log(" *** BEFORE COUNT RUNS ")
+    let totalRecords = 10;
+    try {
+      console.log(" *** BEFORE COUNT RUNS ");
 
-    const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
-    totalRecords = parseInt(totalResult[0].total, 10);
-  } catch(err) {
-    console.log("QUERY COUNT CATCH ERROR: ", err);
+      const totalResult = await main.sql.query(countQuery, [partner.id, ...queryParams.slice(1, -2)]);
+      totalRecords = parseInt(totalResult[0].total, 10);
+    } catch (err) {
+      console.log("QUERY COUNT CATCH ERROR:", err);
+    }
+
+    console.log(" >>> BEFORE QUERY RUNS ");
+    console.log("CHECK QUERY:", query, " | PARAMS:", queryParams);
+
+    const result = await main.sql.query(query, queryParams);
+    console.log("RESULT:", result);
+
+    const response = {
+      draw: parseInt(draw, 10),
+      recordsTotal: totalRecords,
+      recordsFiltered: totalRecords,
+      data: result,
+    };
+
+    console.log("RESPONSE:", response);
+
+    await main.sql.end();
+    return main.responseWrapper(response);
   }
-  console.log(" >>> BEFORE QUERY RUNS ")
-  console.log("CHECK QUERY: ", query, " | PARAMS:  ", queryParams)
-
-  const result = await main.sql.query(query, queryParams);
-  console.log("RESULT: ", result)
-
-  const response = {
-    draw: parseInt(draw, 10),
-    recordsTotal: totalRecords,
-    recordsFiltered: totalRecords,
-    data: result,
-  };
-
-  console.log("RESPONSE: ", response)
-
-  await main.sql.end();
-  return main.responseWrapper(response);
- }
 };
 
 module.exports.getNotificationsForPartner = async event => {
