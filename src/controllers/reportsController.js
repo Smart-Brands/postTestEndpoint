@@ -448,7 +448,7 @@ module.exports.postOutgoingNotificationsForPartner = async event => {
 
   if (dateEnd) {
     whereClause += ' AND otn.date_sent <= ?';
-    queryParams.push(`${dateEnd} 24:59:59`);
+    queryParams.push(`${dateEnd} 23:59:59`);
   }
 
   if(!dateStart && !dateEnd) {
