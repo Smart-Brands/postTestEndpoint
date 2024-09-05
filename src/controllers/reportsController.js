@@ -252,7 +252,7 @@ async function constructQuery(
   start,
   length,
 ) {
-  const limit = parseInt(length, 10) || 10;
+  const limit = parseInt(length, 10) || 25;
   const offset = parseInt(start, 10) || 0;
 
   const emlField = partner.hash_access ? "c.email_hash" : "c.email_address";
@@ -271,10 +271,16 @@ async function constructQuery(
   }
 
   if (search?.value) {
-    whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR p.pixel_name LIKE '%${search?.value}%' OR p.description LIKE '%${search?.value}%' OR p.uuid LIKE '%${search?.value}%')`;
+    whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR otn.list_name LIKE '%${search?.value}%'
+                    OR otn.integration_name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
+                    OR otn.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
+                    OR otn.integration_id = '%${search?.value}%' OR otn.pixel_id = '%${search?.value}%'
+                    OR otn.partner_id = '%${search?.value}%' OR otn.partner_list_id = '%${search?.value}%'
+                    OR otn.response_text LIKE '%${search?.value}%' OR otn.date_created LIKE '%${search?.value}%'
+                    OR otn.date_sent LIKE '%${search?.value}%')`;
   }
 
-  let sortColumn = "n.date_received";
+  let sortColumn = "otn.date_received";
   let sortDirection = "DESC";
 
   if (order && order[0] && typeof order[0].column !== "undefined") {
