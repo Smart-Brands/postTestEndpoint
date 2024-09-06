@@ -8,7 +8,7 @@ const redshiftClient = new RedshiftDataClient({
   region: process.env.MY_AWS_REGION,
 });
 
-module.exports.postOutgoingNotificationsForPartner = async (event) => {
+module.exports.postTestEndpoint = async (event) => {
   const action = event.queryStringParameters?.action;
   const partner = await main.authenticateUser(event);
   const isExport = event.queryStringParameters?.export;
