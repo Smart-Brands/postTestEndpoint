@@ -12,7 +12,7 @@ module.exports.postTestEndpoint = async (event) => {
   const action = event.queryStringParameters?.action;
   const partner = await main.authenticateUser(event);
   const isExport = event.queryStringParameters?.export;
-
+  console.log(">>>>>>> HERE <<<<<<<")
   if(isExport) {
     const returnVal = await initializeExportQuery(event, partner);
     return main.responseWrapper(returnVal);
