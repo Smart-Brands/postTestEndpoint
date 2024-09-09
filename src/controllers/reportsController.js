@@ -319,6 +319,7 @@ async function constructQuery(
                   otn.date_created,
                   otn.date_sent
               FROM outgoing_notifications otn
+	      INNER JOIN contacts c ON c.id = otn.contact_id
               ${whereClause}
               ORDER BY ${sortColumn} ${sortDirection}`;
 
