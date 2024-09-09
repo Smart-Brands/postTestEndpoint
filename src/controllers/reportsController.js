@@ -12,13 +12,12 @@ module.exports.postTestEndpoint = async (event) => {
   const action = event.queryStringParameters?.action;
   const partner = await main.authenticateUser(event);
   const isExport = event.queryStringParameters?.export;
-  console.log(">>>>>>> HERE <<<<<<<")
+
   if(isExport) {
     const returnVal = await initializeExportQuery(event, partner);
     return main.responseWrapper(returnVal);
   }
 
-  console.log("********* PARAMS: ", action, isExport)
   if (action === "initQuery") {
     return await initializeQuery(event, partner);
   } else if (action === "pollStatus") {
@@ -118,7 +117,6 @@ async function initializeQuery(event, partner) {
     draw
   });
 
-  console.log("##### HERE: ", queryId, countQueryString, partner);
   await executeQueryAsync(queryId, countQueryString, partner);
 
   return main.responseWrapper({
@@ -161,6 +159,7 @@ function convertArrayToObject(arr) {
 }
 
 async function executeQueryAsync(queryId, countQuery, partner) {
+  console.log("%%%%% HERE: ", queryId, countQuery, partner)
   const queryStatus = await cache.get(queryId);
 
   try {
@@ -193,10 +192,13 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 
     const totalCountQueryCommand = new ExecuteStatementCommand(totalCountQueryParams);
     const totalCountQueryResponse = await redshiftClient.send(totalCountQueryCommand);
-
+    console.log("BEFORE AWAIT CALLS")
     const mainQueryResult = await waitForQueryCompletion(mainQueryResponse.Id);
+    console.log("AWAIT CALLS 1")
     const countQueryResult = await waitForQueryCompletion(countQueryResponse.Id);
+    console.log("AWAIT CALLS 2")
     const totalCountQueryResult = await waitForQueryCompletion(totalCountQueryResponse.Id);
+    console.log("AWAIT CALLS 3")
 
     const response = {
       draw: parseInt(queryStatus.draw || "1", 10),
@@ -206,6 +208,7 @@ async function executeQueryAsync(queryId, countQuery, partner) {
           return convertArrayToObject(row)
       }),
     };
+    console.log("****** RESP: ", response)
 
     await cache.set(queryId, {
       ...queryStatus,
