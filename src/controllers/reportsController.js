@@ -159,7 +159,6 @@ function convertArrayToObject(arr) {
 }
 
 async function executeQueryAsync(queryId, countQuery, partner) {
-  console.log("%%%%% HERE: ", queryId, countQuery, partner)
   const queryStatus = await cache.get(queryId);
 
   try {
@@ -181,6 +180,7 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 
     const mainQueryCommand = new ExecuteStatementCommand(mainQueryParams);
     const mainQueryResponse = await redshiftClient.send(mainQueryCommand);
+    console.log("MAIN QUERY: ", mainQueryResponse)
 
     const countQueryParams = {
       ...mainQueryParams,
@@ -192,7 +192,7 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 
     const totalCountQueryCommand = new ExecuteStatementCommand(totalCountQueryParams);
     const totalCountQueryResponse = await redshiftClient.send(totalCountQueryCommand);
-    console.log("BEFORE AWAIT CALLS", mainQueryResponse.Id)
+    console.log("BEFORE AWAIT CALLS", mainQueryResponse)
     const mainQueryResult = await waitForQueryCompletion(mainQueryResponse.Id);
     console.log("AWAIT CALLS 1")
     const countQueryResult = await waitForQueryCompletion(countQueryResponse.Id);
