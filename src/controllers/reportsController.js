@@ -318,7 +318,7 @@ async function constructQuery(
                   otn.response_text,
                   otn.date_created,
                   otn.date_sent
-              FROM recent_outgoing_notifications otn
+              FROM outgoing_notifications otn
               ${whereClause}
               ORDER BY ${sortColumn} ${sortDirection}`;
 
