@@ -12,25 +12,15 @@
   },
   "dependencies": {
     "@aws-sdk/client-redshift-data": "^3.592.0",
-    "@hubspot/api-client": "^3.4.1",
-    "@mailchimp/mailchimp_marketing": "^3.0.41",
-    "@sendgrid/client": "^7.4.3",
     "aws-sdk": "^2.905.0",
-    "axios": "^0.21.1",
-    "btoa": "^1.2.1",
-    "chargebee": "^2.18.0",
     "client-oauth2": "^4.3.3",
     "csv-writer": "^1.6.0",
     "husky": "^4.3.8",
-    "jsforce": "^1.10.1",
-    "json2csv": "^5.0.7",
     "jwt-decode": "^3.1.2",
     "lint-staged": "^11.0.0",
-    "node-mailwizz": "^1.0.0",
-    "node-redshift": "^0.1.5",
+    "node-cache": "^5.1.2",
     "nodemon": "^2.0.7",
     "pg": "^8.12.0",
-    "prettier": "^2.3.0",
     "qs": "^6.10.1",
     "serverless": "^2.41.1",
     "serverless-mysql": "^1.5.4",
@@ -53,5 +43,8 @@
     "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
       "prettier --write"
     ]
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
   }
 }
