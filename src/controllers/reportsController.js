@@ -18,6 +18,7 @@ module.exports.postTestEndpoint = async (event) => {
     return main.responseWrapper(returnVal);
   }
 
+  console.log("********* PARAMS: ", action, isExport)
   if (action === "initQuery") {
     return await initializeQuery(event, partner);
   } else if (action === "pollStatus") {
@@ -117,6 +118,7 @@ async function initializeQuery(event, partner) {
     draw
   });
 
+  console.log("##### HERE: ", queryId, countQueryString, partner);
   await executeQueryAsync(queryId, countQueryString, partner);
 
   return main.responseWrapper({
