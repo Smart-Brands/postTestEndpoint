@@ -234,7 +234,7 @@ async function waitForQueryCompletion(queryId) {
 
     const describeCommand = new DescribeStatementCommand(describeParams);
     const describeResponse = await redshiftClient.send(describeCommand);
-   console.log("@@@@@@@@@ DESCRIBE: ", describeCommand, describeResponse)
+   console.log("@@@@@@@@@ DESCRIBE: ", describeCommand, " || ", describeResponse)
 
     if (describeResponse.Status === 'FINISHED') {
       const getResultParams = {
@@ -319,7 +319,6 @@ async function constructQuery(
                   otn.date_created,
                   otn.date_sent
               FROM recent_outgoing_notifications otn
-              WHERE otn.partner_id = ?
               ${whereClause}
               ORDER BY ${sortColumn} ${sortDirection}`;
 
