@@ -192,7 +192,7 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 
     const totalCountQueryCommand = new ExecuteStatementCommand(totalCountQueryParams);
     const totalCountQueryResponse = await redshiftClient.send(totalCountQueryCommand);
-    console.log("BEFORE AWAIT CALLS")
+    console.log("BEFORE AWAIT CALLS", mainQueryResponse.Id)
     const mainQueryResult = await waitForQueryCompletion(mainQueryResponse.Id);
     console.log("AWAIT CALLS 1")
     const countQueryResult = await waitForQueryCompletion(countQueryResponse.Id);
@@ -226,6 +226,7 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 }
 
 async function waitForQueryCompletion(queryId) {
+ console.log("IN waitForQueryCompletion CALL")
   while (true) {
     const describeParams = {
       Id: queryId,
@@ -233,6 +234,7 @@ async function waitForQueryCompletion(queryId) {
 
     const describeCommand = new DescribeStatementCommand(describeParams);
     const describeResponse = await redshiftClient.send(describeCommand);
+   console.log("@@@@@@@@@ DESCRIBE: ", describeCommand, describeResponse)
 
     if (describeResponse.Status === 'FINISHED') {
       const getResultParams = {
