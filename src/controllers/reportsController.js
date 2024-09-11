@@ -287,7 +287,7 @@ async function constructQuery(
                     OR otn.date_sent LIKE '%${search?.value}%')`;
   }
 
-  let sortColumn = "otn.date_received";
+  let sortColumn = "otn.date_sent";
   let sortDirection = "DESC";
 
   if (order && order[0] && typeof order[0].column !== "undefined") {
@@ -328,15 +328,15 @@ function constructCountQuery(partner, dateStart, dateEnd, search) {
   const emlField = partner.hash_access ? "c.email_hash" : "c.email_address";
 
   if (dateStart) {
-    whereClause += ` AND otn.date_received >= '${dateStart} 00:00:00'`;
+    whereClause += ` AND otn.date_sent >= '${dateStart} 00:00:00'`;
   }
 
   if (dateEnd) {
-    whereClause += ` AND otn.date_received <= '${dateEnd} 23:59:59'`;
+    whereClause += ` AND otn.date_sent <= '${dateEnd} 23:59:59'`;
   }
 
   if (!dateStart && !dateEnd) {
-    whereClause += " AND otn.date_received > DATE_SUB(NOW(), INTERVAL 30 DAY)";
+    whereClause += " AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)";
   }
 
   if (search?.value) {
