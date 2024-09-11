@@ -305,10 +305,11 @@ async function constructQuery(
   let query = `SELECT
                   ${emlField} AS email_address,
                   i.name as integration_name, 
-                  ifnull(p.uuid, 'Network') as uuid, 
-                  ifnull(p.pixel_name, 'Network') as pixel_name, 
-                  ifnull(p.description, 'Network') as pixel_description, 
-                  ifnull(l.name, 'Pixel') as list_name, otn.*
+                  p.uuid as uuid, 
+                  p.pixel_name as pixel_name, 
+                  p.description as pixel_description, 
+                  l.name as list_name, 
+                  otn.*
               FROM outgoing_notifications otn
 	      INNER JOIN contacts c ON c.id = otn.contact_id
 	      LEFT JOIN integrations i ON i.id = otn.integration_id
