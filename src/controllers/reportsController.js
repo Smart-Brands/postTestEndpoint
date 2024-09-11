@@ -279,8 +279,8 @@ async function constructQuery(
 
   if (search?.value) {
     whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR otn.list_name LIKE '%${search?.value}%'
-                    OR otn.integration_name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
-                    OR otn.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
+                    OR i.name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
+                    OR p.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
                     OR otn.integration_id = '%${search?.value}%' OR otn.pixel_id = '%${search?.value}%'
                     OR otn.partner_id = '%${search?.value}%' OR otn.partner_list_id = '%${search?.value}%'
                     OR otn.response_text LIKE '%${search?.value}%' OR otn.date_created LIKE '%${search?.value}%'
@@ -304,23 +304,17 @@ async function constructQuery(
 
   let query = `SELECT
                   ${emlField} AS email_address,
-                  otn.integration_name AS integration_name,
-                  otn.uuid AS uuid,
-		              '' AS pixel_name,
-                  otn.list_name AS list_name,
-                  otn.trigger_name AS trigger_name,
-                  otn.contact_id,
-                  otn.integration_id,
-                  otn.pixel_id,
-                  otn.partner_id,
-                  otn.partner_list_id,
-                  otn.status_code,
-                  otn.response_text,
-                  otn.date_created,
-                  otn.date_sent
+                  i.name as integration_name, 
+                  ifnull(p.uuid, 'Network') as uuid, 
+                  ifnull(p.pixel_name, 'Network') as pixel_name, 
+                  ifnull(p.description, 'Network') as pixel_description, 
+                  ifnull(l.name, 'Pixel') as list_name, otn.*
               FROM outgoing_notifications otn
 	      INNER JOIN contacts c ON c.id = otn.contact_id
-              ${whereClause}
+	      LEFT JOIN integrations i ON i.id = otn.integration_id
+	      LEFT JOIN pixels p ON p.id = otn.pixel_id 
+              Left JOIN partner_lists l on l.partner_id = otn.partner_id
+	     ${whereClause}
               ORDER BY ${sortColumn} ${sortDirection}`;
 
   query += ` LIMIT ${limit} OFFSET ${offset}`;
@@ -346,7 +340,7 @@ function constructCountQuery(partner, dateStart, dateEnd, search) {
 
   if (search?.value) {
     whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR otn.list_name LIKE '%${search?.value}%'
-                    OR otn.integration_name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
+                    OR i.integration_name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
                     OR otn.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
                     OR otn.integration_id = '%${search?.value}%' OR otn.pixel_id = '%${search?.value}%'
                     OR otn.partner_id = '%${search?.value}%' OR otn.partner_list_id = '%${search?.value}%'
@@ -354,5 +348,5 @@ function constructCountQuery(partner, dateStart, dateEnd, search) {
                     OR otn.date_sent LIKE '%${search?.value}%')`;
   }
 
-  return `SELECT COUNT(*) AS total FROM outgoing_notifications otn INNER JOIN contacts c ON c.id = otn.contact_id LEFT JOIN pixels p ON p.id = otn.pixel_id ${whereClause}`;
+  return `SELECT COUNT(*) AS total FROM outgoing_notifications otn INNER JOIN contacts c ON c.id = otn.contact_id LEFT JOIN integrations i ON i.id = otn.integration_id LEFT JOIN pixels p ON p.id = otn.pixel_id ${whereClause}`;
 }
