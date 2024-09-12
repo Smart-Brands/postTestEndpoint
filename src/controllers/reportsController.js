@@ -46,8 +46,9 @@ async function initializeExportQuery(event, partner) {
 
     const mainQueryCommand = new ExecuteStatementCommand(mainQueryParams);
     const mainQueryResponse = await redshiftClient.send(mainQueryCommand);
-    console.log("##### MAIN QUERY: ", mainQueryCommand, " || ", mainQueryResponse, " ||| ", mainQueryResult)
     const mainQueryResult = await waitForQueryCompletion(mainQueryResponse.Id);
+    console.log("##### MAIN QUERY: ", mainQueryCommand, " || ", mainQueryResponse, " ||| ", mainQueryResult)
+
     const csvData = await convertToCSV(mainQueryResult.Records);
     console.log("##### CSV DATA: ", csvData)
     return csvData;
