@@ -30,7 +30,7 @@ module.exports.postTestEndpoint = async (event) => {
 async function initializeExportQuery(event, partner) {
   const { dateStart, dateEnd, search, order } = JSON.parse(event.body);
   const query = await constructQuery(partner, dateStart, dateEnd, search, order, 0, 2500);
-  console.log("***** SEARCH VALUE: ", search)
+
   try {
     const mainQueryParams = {
       ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
@@ -268,7 +268,7 @@ async function constructQuery(
 
 	console.log(">>>>> SEARCH: ", search)
   if (search?.value) {
-    whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR otn.list_name LIKE '%${search?.value}%'
+    whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR l.name LIKE '%${search?.value}%'
                     OR i.name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
                     OR p.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
                     OR otn.integration_id = '%${search?.value}%' OR otn.pixel_id = '%${search?.value}%'
