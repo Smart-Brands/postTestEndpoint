@@ -330,7 +330,7 @@ function constructCountQuery(partner, dateStart, dateEnd, search) {
   }
 
   if (search?.value) {
-    whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR otn.list_name LIKE '%${search?.value}%'
+    whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR l.name LIKE '%${search?.value}%'
                     OR i.integration_name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
                     OR otn.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
                     OR otn.integration_id = '%${search?.value}%' OR otn.pixel_id = '%${search?.value}%'
