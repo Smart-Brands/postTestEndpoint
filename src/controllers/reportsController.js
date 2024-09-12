@@ -14,7 +14,9 @@ module.exports.postTestEndpoint = async (event) => {
   const isExport = event.queryStringParameters?.export;
 
   if(isExport) {
+    console.log(">>>>> IN EXPORT")
     const returnVal = await initializeExportQuery(event, partner);
+    console.log(">>>>> RETUNR VAL: ", returnVal)
     return main.responseWrapper(returnVal);
   }
 
@@ -32,6 +34,7 @@ async function initializeExportQuery(event, partner) {
   const query = await constructQuery(partner, dateStart, dateEnd, search, order, 0, 2500);
 
   try {
+    console.log("***** EXPORT QUERY TRY BLOCK")
     const mainQueryParams = {
       ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
       Database: process.env.REDSHIFT_DB_NAME,
@@ -43,10 +46,10 @@ async function initializeExportQuery(event, partner) {
 
     const mainQueryCommand = new ExecuteStatementCommand(mainQueryParams);
     const mainQueryResponse = await redshiftClient.send(mainQueryCommand);
-
+    console.log("##### MAIN QUERY: ", mainQueryCommand, " || ", mainQueryResponse, " ||| ", mainQueryResult)
     const mainQueryResult = await waitForQueryCompletion(mainQueryResponse.Id);
     const csvData = await convertToCSV(mainQueryResult.Records);
-
+    console.log("##### CSV DATA: ", csvData)
     return csvData;
   } catch (err) {
     console.error("ERROR IN EXPORT QUERY EXECUTION: ", err);
@@ -128,13 +131,11 @@ async function initializeQuery(event, partner) {
 async function pollQueryStatus(event) {
   const queryId = event.body;
   const queryStatus = await cache.get(queryId);
-  console.log(">>>> POLL QUERY STATUS: ", queryId, queryStatus)
   if (!queryStatus) {
     return main.responseWrapper({ error: "Query not found" });
   }
 
   if (queryStatus.status === "completed") {
-  	console.log(">>>> POLL QUERY STATUS COMPLETE: ", queryStatus.results)
     return main.responseWrapper({
       status: "completed",
       ...queryStatus.results,
@@ -180,7 +181,6 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 
     const mainQueryCommand = new ExecuteStatementCommand(mainQueryParams);
     const mainQueryResponse = await redshiftClient.send(mainQueryCommand);
-    console.log("MAIN QUERY: ", mainQueryResponse)
 
     const countQueryParams = {
       ...mainQueryParams,
@@ -192,15 +192,10 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 
     const totalCountQueryCommand = new ExecuteStatementCommand(totalCountQueryParams);
     const totalCountQueryResponse = await redshiftClient.send(totalCountQueryCommand);
-    console.log("############ PARTNER ID: ", partner.id)
 
-    console.log("BEFORE AWAIT CALLS", mainQueryResponse)
     const mainQueryResult = await waitForQueryCompletion(mainQueryResponse.Id);
-    console.log("AWAIT CALLS 1")
     const countQueryResult = await waitForQueryCompletion(countQueryResponse.Id);
-    console.log("AWAIT CALLS 2")
     const totalCountQueryResult = await waitForQueryCompletion(totalCountQueryResponse.Id);
-    console.log("AWAIT CALLS 3")
 
     const response = {
       draw: parseInt(queryStatus.draw || "1", 10),
@@ -210,7 +205,6 @@ async function executeQueryAsync(queryId, countQuery, partner) {
           return convertArrayToObject(row)
       }),
     };
-    console.log("****** RESP: ", response)
 
     await cache.set(queryId, {
       ...queryStatus,
@@ -243,7 +237,6 @@ async function waitForQueryCompletion(queryId) {
       };
       const getResultCommand = new GetStatementResultCommand(getResultParams);
       const getResultResponse = await redshiftClient.send(getResultCommand);
-	console.log("@@@@@@@@ GET RESULTS RESPONSE: ", getResultResponse)
       return getResultResponse;
     } else if (describeResponse.Status === 'FAILED' || describeResponse.Status === 'ABORTED') {
       throw new Error(`Query execution failed: ${describeResponse.Error}`);
