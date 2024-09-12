@@ -270,11 +270,8 @@ async function constructQuery(
   if (search?.value) {
     whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR l.name LIKE '%${search?.value}%'
                     OR i.name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
-                    OR p.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
-                    OR otn.integration_id = '%${search?.value}%' OR otn.pixel_id = '%${search?.value}%'
-                    OR otn.partner_id = '%${search?.value}%' OR otn.partner_list_id = '%${search?.value}%'
-                    OR otn.response_text LIKE '%${search?.value}%' OR otn.date_created LIKE '%${search?.value}%'
-                    OR otn.date_sent LIKE '%${search?.value}%')`;
+                    OR p.uuid LIKE '%${search?.value}%' OR otn.response_text LIKE '%${search?.value}%' 
+		    OR otn.date_created LIKE '%${search?.value}%' OR otn.date_sent LIKE '%${search?.value}%')`;
   }
 
   let sortColumn = "otn.date_sent";
@@ -331,12 +328,9 @@ function constructCountQuery(partner, dateStart, dateEnd, search) {
 
   if (search?.value) {
     whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR l.name LIKE '%${search?.value}%'
-                    OR i.integration_name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
-                    OR otn.uuid LIKE '%${search?.value}%' OR otn.contact_id = '%${search?.value}%'
-                    OR otn.integration_id = '%${search?.value}%' OR otn.pixel_id = '%${search?.value}%'
-                    OR otn.partner_id = '%${search?.value}%' OR otn.partner_list_id = '%${search?.value}%'
-                    OR otn.response_text LIKE '%${search?.value}%' OR otn.date_created LIKE '%${search?.value}%'
-                    OR otn.date_sent LIKE '%${search?.value}%')`;
+                    OR i.name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
+                    OR p.uuid LIKE '%${search?.value}%' OR otn.response_text LIKE '%${search?.value}%' 
+		    OR otn.date_created LIKE '%${search?.value}%' OR otn.date_sent LIKE '%${search?.value}%')`;
   }
 
   return `SELECT COUNT(*) AS total FROM outgoing_notifications otn INNER JOIN contacts c ON c.id = otn.contact_id LEFT JOIN integrations i ON i.id = otn.integration_id LEFT JOIN pixels p ON p.id = otn.pixel_id ${whereClause}`;
