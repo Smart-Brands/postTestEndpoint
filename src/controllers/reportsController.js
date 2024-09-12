@@ -264,7 +264,7 @@ async function constructQuery(
 
   const emlField = partner.hash_access ? "c.email_hash" : "c.email_address";
   let whereClause = `WHERE otn.partner_id = ${partner.id}`;
-
+  console.log("############ PARTNER ID: ", partner.id)
   if (dateStart) {
     whereClause += ` AND otn.date_sent >= '${dateStart} 00:00:00'`;
   }
