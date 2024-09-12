@@ -14,9 +14,7 @@ module.exports.postTestEndpoint = async (event) => {
   const isExport = event.queryStringParameters?.export;
 
   if(isExport) {
-    console.log(">>>>> IN EXPORT")
     const returnVal = await initializeExportQuery(event, partner);
-    console.log(">>>>> RETUNR VAL: ", returnVal)
     return main.responseWrapper(returnVal);
   }
 
@@ -32,9 +30,8 @@ module.exports.postTestEndpoint = async (event) => {
 async function initializeExportQuery(event, partner) {
   const { dateStart, dateEnd, search, order } = JSON.parse(event.body);
   const query = await constructQuery(partner, dateStart, dateEnd, search, order, 0, 2500);
-
+  console.log("***** SEARCH VALUE: ", search)
   try {
-    console.log("***** EXPORT QUERY TRY BLOCK")
     const mainQueryParams = {
       ClusterIdentifier: process.env.REDSHIFT_CLUSTER_IDENTIFIER,
       Database: process.env.REDSHIFT_DB_NAME,
@@ -47,10 +44,8 @@ async function initializeExportQuery(event, partner) {
     const mainQueryCommand = new ExecuteStatementCommand(mainQueryParams);
     const mainQueryResponse = await redshiftClient.send(mainQueryCommand);
     const mainQueryResult = await waitForQueryCompletion(mainQueryResponse.Id);
-    console.log("##### MAIN QUERY: ", mainQueryCommand, " || ", mainQueryResponse, " ||| ", mainQueryResult)
 
     const csvData = await convertToCSV(mainQueryResult.Records);
-    console.log("##### CSV DATA: ", csvData)
     return csvData;
   } catch (err) {
     console.error("ERROR IN EXPORT QUERY EXECUTION: ", err);
@@ -223,7 +218,6 @@ async function executeQueryAsync(queryId, countQuery, partner) {
 }
 
 async function waitForQueryCompletion(queryId) {
- console.log("IN waitForQueryCompletion CALL")
   while (true) {
     const describeParams = {
       Id: queryId,
@@ -272,6 +266,7 @@ async function constructQuery(
     whereClause += " AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)";
   }
 
+	console.log(">>>>> SEARCH: ", search)
   if (search?.value) {
     whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR otn.list_name LIKE '%${search?.value}%'
                     OR i.name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
