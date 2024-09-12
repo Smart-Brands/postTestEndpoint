@@ -301,7 +301,7 @@ async function constructQuery(
 	      INNER JOIN contacts c ON c.id = otn.contact_id
 	      LEFT JOIN integrations i ON i.id = otn.integration_id
 	      LEFT JOIN pixels p ON p.id = otn.pixel_id 
-              Left JOIN partner_lists l on l.partner_id = otn.partner_id
+              LEFT JOIN partner_lists l on l.partner_id = otn.partner_id
 	     ${whereClause}
               ORDER BY ${sortColumn} ${sortDirection}`;
 
@@ -333,5 +333,5 @@ function constructCountQuery(partner, dateStart, dateEnd, search) {
 		    OR otn.date_created LIKE '%${search?.value}%' OR otn.date_sent LIKE '%${search?.value}%')`;
   }
 
-  return `SELECT COUNT(*) AS total FROM outgoing_notifications otn INNER JOIN contacts c ON c.id = otn.contact_id LEFT JOIN integrations i ON i.id = otn.integration_id LEFT JOIN pixels p ON p.id = otn.pixel_id ${whereClause}`;
+  return `SELECT COUNT(*) AS total FROM outgoing_notifications otn INNER JOIN contacts c ON c.id = otn.contact_id LEFT JOIN integrations i ON i.id = otn.integration_id LEFT JOIN partner_lists l on l.partner_id = otn.partner_id LEFT JOIN pixels p ON p.id = otn.pixel_id ${whereClause}`;
 }
