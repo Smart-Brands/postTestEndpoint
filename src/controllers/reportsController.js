@@ -128,13 +128,13 @@ async function initializeQuery(event, partner) {
 async function pollQueryStatus(event) {
   const queryId = event.body;
   const queryStatus = await cache.get(queryId);
-
+  console.log(">>>> POLL QUERY STATUS: ", queryId, queryStatus)
   if (!queryStatus) {
     return main.responseWrapper({ error: "Query not found" });
   }
 
   if (queryStatus.status === "completed") {
-
+  	console.log(">>>> POLL QUERY STATUS COMPLETE: ", queryStatus.results)
     return main.responseWrapper({
       status: "completed",
       ...queryStatus.results,
