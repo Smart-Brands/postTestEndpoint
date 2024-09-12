@@ -243,7 +243,7 @@ async function waitForQueryCompletion(queryId) {
       };
       const getResultCommand = new GetStatementResultCommand(getResultParams);
       const getResultResponse = await redshiftClient.send(getResultCommand);
-
+	console.log("@@@@@@@@ GET RESULTS RESPONSE: ", getResultResponse)
       return getResultResponse;
     } else if (describeResponse.Status === 'FAILED' || describeResponse.Status === 'ABORTED') {
       throw new Error(`Query execution failed: ${describeResponse.Error}`);
