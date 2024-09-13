@@ -266,7 +266,6 @@ async function constructQuery(
     whereClause += " AND otn.date_sent > DATE_SUB(NOW(), INTERVAL 30 DAY)";
   }
 
-   console.log(">>>>> SEARCH: ", search)
   if (search?.value) {
     whereClause += ` AND (${emlField} LIKE '%${search?.value}%' OR l.name LIKE '%${search?.value}%'
                     OR i.name LIKE '%${search?.value}%' OR otn.status_code LIKE '%${search?.value}%'
