@@ -117,6 +117,33 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+
+
+      # =====================================================
+      # NEW STEP: Grant Secrets Manager Access to Lambda
+      # =====================================================
+      - name: Grant Lambda Access to Secrets Manager 🔐
+        run: |
+          echo "Granting Secrets Manager access to Lambda function..."
+          
+          # Get the Lambda function's execution role ARN
+          ROLE_NAME=$(aws lambda get-function --function-name ${{ env.LAMBDA_FUNCTION_NAME }} --query 'Configuration.Role' --output text | awk -F'/' '{print $NF}')
+          
+          echo "Lambda execution role: $ROLE_NAME"
+          
+          # Check if SecretsManagerReadWrite policy is already attached
+          POLICY_ATTACHED=$(aws iam list-attached-role-policies --role-name "$ROLE_NAME" --query 'AttachedPolicies[?PolicyName==`SecretsManagerReadWrite`]' --output text)
+          
+          if [ -z "$POLICY_ATTACHED" ]; then
+            echo "Attaching SecretsManagerReadWrite policy..."
+            aws iam attach-role-policy \
+              --role-name "$ROLE_NAME" \
+              --policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite
+            echo "✅ Policy attached successfully!"
+          else
+            echo "✅ SecretsManagerReadWrite policy already attached"
+          fi
+
       - name: Upload to S3
         run: |
          aws s3 cp ./${{ env.LAMBDA_FUNCTION_NAME }}.zip s3://${{ env.AWS_S3_BUCKET }}/${{ env.LAMBDA_FUNCTION_NAME }}.zip
