@@ -29,7 +29,8 @@
     "ssh2-sftp-client": "^9.0.4",
     "stream": "^0.0.2",
     "uuid": "^8.3.2",
-    "zlib": "^1.0.5"
+    "zlib": "^1.0.5",
+    "@aws-sdk/client-secrets-manager": "^3.0.0"
   },
   "husky": {
     "hooks": {
